@@ -2660,6 +2660,44 @@ export default function AdminPage() {
                           <span>Preview</span>
                         </a>
                       )}
+
+                      {/* Remove Resume button */}
+                      {content.hero?.resumeUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm('Remove resume from portfolio? (The download button on your homepage will be hidden until you add a new one). Click Save All Changes after removing.')) {
+                              setContent({
+                                ...content,
+                                hero: { ...content.hero, resumeUrl: '' },
+                              });
+                            }
+                          }}
+                          className="px-3 py-2 rounded-xl bg-red-950/40 border border-red-800/60 text-red-300 hover:bg-red-900/60 hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                          title="Remove resume"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Remove</span>
+                        </button>
+                      )}
+
+                      {/* Restore Default PDF Resume when none is set */}
+                      {!content.hero?.resumeUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setContent({
+                              ...content,
+                              hero: { ...content.hero, resumeUrl: '/Skills/Shubham_Kumar_Resume.pdf' },
+                            });
+                          }}
+                          className="px-3 py-2 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 hover:bg-emerald-900/60 hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                          title="Set Default PDF Resume"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Use Default PDF</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

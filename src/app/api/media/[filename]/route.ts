@@ -32,12 +32,14 @@ export async function GET(
     // 1. Check PostgreSQL Cloud Database first (persistent for Netlify)
     const dbAsset = await getMediaFromPostgres(safeFilename);
     if (dbAsset) {
+      const headers: Record<string, string> = {
+        'Content-Type': dbAsset.mimeType || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Disposition': `inline; filename="${safeFilename}"`,
+      };
       return new NextResponse(dbAsset.buffer, {
         status: 200,
-        headers: {
-          'Content-Type': dbAsset.mimeType || 'application/octet-stream',
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        },
+        headers,
       });
     }
 
@@ -51,12 +53,15 @@ export async function GET(
         const ext = path.extname(safeFilename).toLowerCase();
         const mimeType = MIME_MAP[ext] || 'application/octet-stream';
 
+        const headers: Record<string, string> = {
+          'Content-Type': mimeType,
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Content-Disposition': `inline; filename="${safeFilename}"`,
+        };
+
         return new NextResponse(buffer, {
           status: 200,
-          headers: {
-            'Content-Type': mimeType,
-            'Cache-Control': 'public, max-age=31536000, immutable',
-          },
+          headers,
         });
       } catch {
         // Continue searching other folders

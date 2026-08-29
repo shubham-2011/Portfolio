@@ -40,7 +40,7 @@ export default function Hero({ content }: HeroProps) {
   const technologiesCount = content?.technologiesCount || '10+';
   const clientSatisfaction = content?.clientSatisfaction || '100%';
   const profileImage = content?.profileImage || '/Skills/shubham3-rm.png';
-  const resumeUrl = content?.resumeUrl || '/CV.png';
+  const resumeUrl = content?.resumeUrl !== undefined ? content.resumeUrl : '/Skills/Shubham_Kumar_Resume.pdf';
 
   // Rotating Typewriter Text Effect
   const [roleIndex, setRoleIndex] = useState(0);
@@ -153,15 +153,18 @@ export default function Hero({ content }: HeroProps) {
             <Mail className="w-3.5 h-3.5" />
             <span>Hire / Email</span>
           </a>
-          <a
-            href={resumeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-semibold text-xs active:scale-95 transition-transform"
-          >
-            <FileText className="w-3.5 h-3.5 text-zinc-300" />
-            <span>Resume PDF</span>
-          </a>
+          {resumeUrl ? (
+            <a
+              href={resumeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download="Shubham_Kumar_Resume.pdf"
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-semibold text-xs active:scale-95 transition-transform"
+            >
+              <FileText className="w-3.5 h-3.5 text-zinc-300" />
+              <span>Resume PDF</span>
+            </a>
+          ) : null}
         </div>
 
         {/* Mobile Floating Glass Stats Ribbon */}
@@ -255,15 +258,18 @@ export default function Hero({ content }: HeroProps) {
               <span>Send Email</span>
             </a>
 
-            <a
-              href={resumeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-zinc-700 bg-zinc-900/60 hover:bg-white/10 text-white font-semibold hover:border-white hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white backdrop-blur-md"
-            >
-              <FileText className="w-4 h-4 text-zinc-300" />
-              <span>Download Resume</span>
-            </a>
+            {resumeUrl ? (
+              <a
+                href={resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download="Shubham_Kumar_Resume.pdf"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-zinc-700 bg-zinc-900/60 hover:bg-white/10 text-white font-semibold hover:border-white hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white backdrop-blur-md"
+              >
+                <FileText className="w-4 h-4 text-zinc-300" />
+                <span>Download Resume</span>
+              </a>
+            ) : null}
 
             <Link
               href="#projects"
