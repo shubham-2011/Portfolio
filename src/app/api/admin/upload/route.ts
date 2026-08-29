@@ -79,6 +79,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, url: publicUrl, filename: uniqueName });
   } catch (error: any) {
     console.error('File upload error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to upload file to server.' }, { status: 500 });
+    const isDev = process.env.NODE_ENV !== 'production';
+    const message = isDev ? (error?.message || String(error)) : 'Failed to upload file to server.';
+    const details = isDev ? (error?.stack || null) : null;
+    return NextResponse.json(
+      { success: false, error: message, details },
+      { status: 500 }
+    );
   }
 }
