@@ -40,10 +40,7 @@ export default function About({ content }: AboutProps) {
       className="py-24 px-4 sm:px-6 lg:px-8 bg-black relative border-t border-zinc-900 overflow-hidden"
     >
       {/* 🌌 Squarespace Celestial 3D Stardust Particle Sphere Background */}
-      <ParticleSphere particleCount={1600} className="opacity-95 z-0" />
-      
-      {/* Radial fade mask overlay to blend seamlessly into deep black */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,black_80%)] pointer-events-none z-0" />
+      <ParticleSphere particleCount={2200} speed={1.2} radiusFactor={0.48} className="opacity-100 z-0" />
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Section Header */}

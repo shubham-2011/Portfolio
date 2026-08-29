@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Mail, FileText, ArrowDown, Sparkles } from 'lucide-react';
+import ParticleSphere from './ParticleSphere';
 
 interface HeroProps {
   content?: {
@@ -76,10 +77,9 @@ export default function Hero({ content }: HeroProps) {
       id="home"
       className="relative min-h-[92vh] flex items-center justify-center pt-28 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden bg-black"
     >
-      {/* Background Decorative Monochrome Grid & Ambient Light */}
-      <div className="absolute inset-0 bg-grid-white [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)] pointer-events-none opacity-70" />
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[350px] h-[350px] bg-zinc-700/[0.1] rounded-full blur-[120px] pointer-events-none" />
+      {/* 🌌 Squarespace Celestial 3D Stardust Particle Sphere Background */}
+      <ParticleSphere particleCount={2500} speed={1.2} radiusFactor={0.52} centerYRatio={0.5} className="opacity-100 z-0" />
+      <div className="absolute inset-0 bg-grid-white [mask-image:radial-gradient(ellipse_at_center,black_15%,transparent_80%)] pointer-events-none opacity-15 z-0" />
 
       {/* ========================================================================= */}
       {/* 📱 EXCLUSIVE MOBILE HERO EXPERIENCE (< lg)                                */}
@@ -296,7 +296,7 @@ export default function Hero({ content }: HeroProps) {
           </motion.div>
         </div>
 
-        {/* Right Column: Profile Image Avatar Card */}
+        {/* Right Column: Refined Compact Profile Image with Orbit Badges */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -304,28 +304,33 @@ export default function Hero({ content }: HeroProps) {
           className="lg:col-span-5 flex justify-center items-center"
         >
           <div className="relative group">
-            {/* Outer Glow Ring */}
-            <div className="absolute -inset-1.5 bg-gradient-to-r from-white/20 to-zinc-600/30 rounded-full blur-lg opacity-40 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
+            {/* Outer Cosmic Halo */}
+            <div className="absolute -inset-3 bg-gradient-to-r from-white/20 via-zinc-500/20 to-transparent rounded-full blur-2xl opacity-50 group-hover:opacity-80 transition duration-700 pointer-events-none" />
 
-            {/* Avatar Frame */}
-            <div className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden border-2 border-white/20 bg-zinc-950 shadow-2xl">
-              <Image
-                src={profileImage}
-                alt={`${name} - ${baseTitle}`}
-                fill
-                priority
-                className="object-cover object-top p-2"
-                sizes="(max-width: 768px) 256px, 320px"
-              />
+            {/* Compact Circular Frame */}
+            <div className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-full overflow-hidden border-2 border-white/25 bg-zinc-950/80 shadow-[0_10px_50px_rgba(0,0,0,0.95)] p-1.5 backdrop-blur-md group-hover:border-white/50 transition-colors duration-300">
+              <div className="relative w-full h-full rounded-full overflow-hidden bg-black/60">
+                <Image
+                  src={profileImage}
+                  alt={`${name} - ${baseTitle}`}
+                  fill
+                  priority
+                  className="object-cover object-top p-1 group-hover:scale-105 transition-transform duration-500"
+                  sizes="(max-width: 768px) 176px, 208px"
+                />
+              </div>
             </div>
 
-            {/* Floating Experience Badge */}
-            <div className="absolute -bottom-2 -right-2 sm:bottom-4 sm:right-0 px-4 py-2 rounded-xl bg-zinc-950/90 border border-white/20 backdrop-blur-md shadow-xl flex items-center gap-2.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-              <div className="text-left">
-                <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold">Status</p>
-                <p className="text-xs font-semibold text-white">Open to Work</p>
-              </div>
+            {/* Orbiting Satellite Badges */}
+            <div className="absolute -top-2 -left-4 px-3 py-1 rounded-full bg-black/90 border border-white/25 text-[11px] font-bold font-mono text-white shadow-xl backdrop-blur-md">
+              ⚡ Spring Boot
+            </div>
+            <div className="absolute top-2 -right-4 px-3 py-1 rounded-full bg-black/90 border border-white/25 text-[11px] font-bold font-mono text-white shadow-xl backdrop-blur-md">
+              ⚛ React / Angular
+            </div>
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-zinc-950/95 border border-white/30 text-[11px] font-mono text-zinc-300 shadow-xl backdrop-blur-md flex items-center gap-1.5 whitespace-nowrap">
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              <span>PostgreSQL & Cloud</span>
             </div>
           </div>
         </motion.div>
