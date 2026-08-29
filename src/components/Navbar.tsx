@@ -30,7 +30,7 @@ export default function Navbar() {
       role="banner"
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-black/90 backdrop-blur-md border-b border-white/10 shadow-xl shadow-black/50 py-3'
+          ? 'bg-black/90 backdrop-blur-md shadow-xl shadow-black/50 py-3'
           : 'bg-transparent py-5'
       }`}
     >
@@ -79,7 +79,7 @@ export default function Navbar() {
 
       {/* Mobile Drawer */}
       {isOpen && (
-        <div className="md:hidden bg-zinc-950/95 backdrop-blur-xl border-b border-white/10 px-4 pt-3 pb-6 space-y-2 animate-fadeIn">
+        <div className="md:hidden bg-zinc-950/95 backdrop-blur-xl px-4 pt-3 pb-6 space-y-2 animate-fadeIn">
           {navLinks.map((link) => (
             <Link
               key={link.name}

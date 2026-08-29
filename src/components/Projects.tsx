@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { motion, type PanInfo } from 'framer-motion';
+import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
 import { ExternalLink, Github, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface Project {
@@ -128,28 +128,22 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [activeMobileIdx, setActiveMobileIdx] = useState(0);
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const [mobileDirection, setMobileDirection] = useState(1);
 
-  const handleMobileScroll = () => {
-    if (!mobileScrollRef.current) return;
-    const scrollLeft = mobileScrollRef.current.scrollLeft;
-    const cardWidth = mobileScrollRef.current.offsetWidth * 0.85;
-    const newIdx = Math.round(scrollLeft / (cardWidth + 16));
-    if (newIdx >= 0 && newIdx < projects.length && newIdx !== activeMobileIdx) {
-      setActiveMobileIdx(newIdx);
-    }
+  const goToProject = (newIdx: number) => {
+    const targetIdx = (newIdx + projects.length) % projects.length;
+    setMobileDirection(targetIdx >= currentIndex ? 1 : -1);
+    setCurrentIndex(targetIdx);
   };
 
-  const scrollToMobileProject = (idx: number) => {
-    if (!mobileScrollRef.current) return;
-    const targetIdx = Math.max(0, Math.min(idx, projects.length - 1));
-    const cardWidth = mobileScrollRef.current.offsetWidth * 0.85;
-    mobileScrollRef.current.scrollTo({
-      left: targetIdx * (cardWidth + 16),
-      behavior: 'smooth',
-    });
-    setActiveMobileIdx(targetIdx);
+  const handleMobileDragEnd = (_: any, info: PanInfo) => {
+    const swipeThreshold = 30;
+    const velocityThreshold = 200;
+    if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
+      goToProject(currentIndex + 1);
+    } else if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
+      goToProject(currentIndex - 1);
+    }
   };
 
   // Automatic Smooth Sliding (Pauses on Hover)
@@ -157,35 +151,28 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
     if (isHovered) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % projects.length);
-    }, 4200);
+    }, 5500);
 
     return () => clearInterval(timer);
   }, [isHovered, projects.length]);
 
-  // Mousepad / Touchpad Scroll Handler (Two-finger swipe & wheel)
+  // Mousepad / Touchpad Horizontal Swipe Handler with smooth accumulation
   const lastWheelTime = useRef(0);
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    const now = Date.now();
-    // 380ms cooldown to smoothly advance card-by-card on touchpad flick
-    if (now - lastWheelTime.current < 380) return;
+  const accumulatedDeltaX = useRef(0);
 
-    // Detect horizontal touchpad swipe
-    if (Math.abs(e.deltaX) > 18) {
-      if (e.deltaX > 18) {
-        setCurrentIndex((prev) => (prev + 1) % projects.length);
-        lastWheelTime.current = now;
-      } else if (e.deltaX < -18) {
-        setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
-        lastWheelTime.current = now;
-      }
-    }
-    // Detect vertical wheel scroll when over the carousel
-    else if (Math.abs(e.deltaY) > 25) {
-      if (e.deltaY > 25) {
-        setCurrentIndex((prev) => (prev + 1) % projects.length);
-        lastWheelTime.current = now;
-      } else if (e.deltaY < -25) {
-        setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    // Only capture clear horizontal swipes (preserves vertical page scroll)
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 8) {
+      accumulatedDeltaX.current += e.deltaX;
+      const now = Date.now();
+
+      if (Math.abs(accumulatedDeltaX.current) > 30 && now - lastWheelTime.current > 260) {
+        if (accumulatedDeltaX.current > 0) {
+          setCurrentIndex((prev) => (prev + 1) % projects.length);
+        } else {
+          setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+        }
+        accumulatedDeltaX.current = 0;
         lastWheelTime.current = now;
       }
     }
@@ -204,17 +191,21 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [projects.length]);
 
-  // Swipe gesture support
+  // Velocity-aware responsive swipe gesture support
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const swipeThreshold = 40;
-    if (info.offset.x < -swipeThreshold) {
+    const swipeThreshold = 25;
+    const velocityThreshold = 250;
+
+    if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
+      // Slide Left -> advance to next
       setCurrentIndex((prev) => (prev + 1) % projects.length);
-    } else if (info.offset.x > swipeThreshold) {
+    } else if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
+      // Slide Right -> go to previous
       setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
     }
   };
 
-  // Exact 3D coordinates matching Squarespace
+  // Exact 3D coordinates matching Squarespace with refined depth & opacity
   const getCardProps = (index: number) => {
     let diff = (index - currentIndex) % projects.length;
     if (diff < -Math.floor(projects.length / 2)) diff += projects.length;
@@ -231,31 +222,31 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         pointerEvents: 'auto' as const,
       };
     } else if (diff === 1 || diff === -(projects.length - 1)) {
-      // Right Card
+      // Right Card in 3D (Substantially smaller height & scale)
       return {
-        x: '62%',
-        rotateY: -24,
-        scale: 0.88,
+        x: '72%',
+        rotateY: -20,
+        scale: 0.70,
         zIndex: 10,
-        opacity: 0.85,
+        opacity: 0.4,
         pointerEvents: 'auto' as const,
       };
     } else if (diff === -1 || diff === projects.length - 1) {
-      // Left Card
+      // Left Card in 3D (Substantially smaller height & scale)
       return {
-        x: '-62%',
-        rotateY: 24,
-        scale: 0.88,
+        x: '-72%',
+        rotateY: 20,
+        scale: 0.70,
         zIndex: 10,
-        opacity: 0.85,
+        opacity: 0.4,
         pointerEvents: 'auto' as const,
       };
     } else {
       // Far hidden cards
       return {
-        x: diff > 0 ? '110%' : '-110%',
-        rotateY: diff > 0 ? -35 : 35,
-        scale: 0.75,
+        x: diff > 0 ? '120%' : '-120%',
+        rotateY: diff > 0 ? -30 : 30,
+        scale: 0.55,
         zIndex: 1,
         opacity: 0,
         pointerEvents: 'none' as const,
@@ -267,7 +258,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
     <section
       id="projects"
       aria-label="Featured Software Engineering Projects"
-      className="py-16 sm:py-24 bg-black relative border-t border-zinc-900 overflow-hidden"
+      className="py-16 sm:py-24 bg-black relative overflow-hidden"
     >
       {/* Background Ambient Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[950px] h-[500px] bg-white/[0.02] rounded-full blur-[180px] pointer-events-none" />
@@ -283,7 +274,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
           Selected Work
         </h2>
         <p className="text-xs sm:text-sm text-zinc-400 mt-2">
-          Squarespace 3D curved cylinder &bull; Auto-sliding &bull; Touchpad scroll enabled
+          Squarespace 3D Curved Cylinder &bull; Slide with arrows, swipe, or click side cards
         </p>
       </div>
 
@@ -423,17 +414,15 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => scrollToMobileProject(activeMobileIdx - 1)}
-              disabled={activeMobileIdx === 0}
-              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-30 active:scale-90 transition-transform"
+              onClick={() => scrollToMobileProject((activeMobileIdx - 1 + projects.length) % projects.length)}
+              className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white active:scale-90 transition-transform"
               aria-label="Previous project"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={() => scrollToMobileProject(activeMobileIdx + 1)}
-              disabled={activeMobileIdx === projects.length - 1}
-              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-30 active:scale-90 transition-transform"
+              onClick={() => scrollToMobileProject((activeMobileIdx + 1) % projects.length)}
+              className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white active:scale-90 transition-transform"
               aria-label="Next project"
             >
               <ChevronRight className="w-4 h-4" />
@@ -452,6 +441,30 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         className="hidden md:flex relative w-full max-w-7xl mx-auto h-[500px] sm:h-[560px] lg:h-[590px] items-center justify-center select-none overflow-visible px-4"
         style={{ perspective: '1600px' }}
       >
+        {/* Floating Left Arrow Button for Instant Smooth Sliding */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+          }}
+          className="absolute left-3 lg:left-6 z-40 p-3.5 rounded-full bg-zinc-950/85 hover:bg-white text-zinc-300 hover:text-black border border-white/20 hover:border-white shadow-2xl backdrop-blur-md transition-all duration-200 active:scale-90 flex items-center justify-center cursor-pointer group"
+          aria-label="Previous project"
+        >
+          <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+        </button>
+
+        {/* Floating Right Arrow Button for Instant Smooth Sliding */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setCurrentIndex((prev) => (prev + 1) % projects.length);
+          }}
+          className="absolute right-3 lg:right-6 z-40 p-3.5 rounded-full bg-zinc-950/85 hover:bg-white text-zinc-300 hover:text-black border border-white/20 hover:border-white shadow-2xl backdrop-blur-md transition-all duration-200 active:scale-90 flex items-center justify-center cursor-pointer group"
+          aria-label="Next project"
+        >
+          <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+        </button>
+
         {projects.map((project, idx) => {
           const cardProps = getCardProps(idx);
           const isCenter = (idx - currentIndex) % projects.length === 0;
@@ -463,26 +476,30 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
               itemType="https://schema.org/SoftwareApplication"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.15}
+              dragElastic={0.35}
               onDragEnd={handleDragEnd}
               animate={{
                 x: cardProps.x,
                 rotateY: cardProps.rotateY,
                 scale: cardProps.scale,
-                zIndex: cardProps.zIndex,
                 opacity: cardProps.opacity,
               }}
               transition={{
-                duration: 0.9,
-                ease: [0.16, 1, 0.3, 1], // Smooth Squarespace physical inertia
+                type: 'spring',
+                stiffness: 260,
+                damping: 28,
+                mass: 0.8,
               }}
               onClick={() => {
                 if (!isCenter) setCurrentIndex(idx);
               }}
               className="absolute w-[88vw] sm:w-[620px] lg:w-[740px] h-[480px] sm:h-[530px] lg:h-[560px] rounded-[32px] overflow-hidden border border-white/20 bg-[#0c0c0e] shadow-[0_30px_90px_rgba(0,0,0,0.95)] flex flex-col justify-between p-5 sm:p-7 cursor-grab active:cursor-grabbing hover:border-white/40"
               style={{
+                zIndex: cardProps.zIndex,
                 pointerEvents: cardProps.pointerEvents,
                 transformStyle: 'preserve-3d',
+                backfaceVisibility: 'hidden',
+                willChange: 'transform, opacity',
               }}
             >
               {/* 1. Card Top Bar */}
@@ -593,20 +610,38 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         })}
       </div>
 
-      {/* Desktop Slide Indicators */}
-      <div className="hidden md:flex mt-8 items-center justify-center gap-2">
-        {projects.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setCurrentIndex(idx)}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              currentIndex === idx
-                ? 'w-8 bg-white shadow-md shadow-white/40'
-                : 'w-2 bg-zinc-800 hover:bg-zinc-600'
-            }`}
-            aria-label={`Jump to project ${idx + 1}`}
-          />
-        ))}
+      {/* Desktop Slide Indicators & Controls Bar */}
+      <div className="hidden md:flex mt-8 items-center justify-center gap-5">
+        <button
+          onClick={() => setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length)}
+          className="p-2 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white hover:border-white transition-all active:scale-90 cursor-pointer"
+          aria-label="Previous project"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-center gap-2">
+          {projects.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                currentIndex === idx
+                  ? 'w-8 bg-white shadow-md shadow-white/40'
+                  : 'w-2 bg-zinc-800 hover:bg-zinc-600'
+              }`}
+              aria-label={`Jump to project ${idx + 1}`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={() => setCurrentIndex((prev) => (prev + 1) % projects.length)}
+          className="p-2 rounded-full bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white hover:border-white transition-all active:scale-90 cursor-pointer"
+          aria-label="Next project"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Bottom Caption */}

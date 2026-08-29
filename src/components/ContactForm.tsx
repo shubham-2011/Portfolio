@@ -57,7 +57,7 @@ export default function ContactForm() {
     <section
       id="contact"
       aria-label="Contact Shubham Kumar"
-      className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950 relative border-t border-zinc-900"
+      className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950 relative"
     >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">

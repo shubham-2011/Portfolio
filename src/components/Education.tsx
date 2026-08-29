@@ -82,7 +82,7 @@ export default function Education({
     <section
       id="education"
       aria-label="Education & Professional Experience"
-      className="py-20 px-4 sm:px-6 lg:px-8 bg-black relative border-t border-zinc-900"
+      className="py-20 px-4 sm:px-6 lg:px-8 bg-black relative"
     >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">

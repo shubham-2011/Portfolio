@@ -279,7 +279,7 @@ export default function Hero({ content }: HeroProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.45 }}
-            className="pt-6 border-t border-zinc-800 grid grid-cols-3 gap-4 max-w-lg"
+            className="pt-6 grid grid-cols-3 gap-4 max-w-lg"
           >
             <div>
               <p className="text-2xl font-bold text-white tracking-tight">{yearsExperience}</p>

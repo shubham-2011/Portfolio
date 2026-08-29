@@ -36,7 +36,7 @@ export default function Footer() {
     <footer
       role="contentinfo"
       aria-label="Site Footer"
-      className="bg-black border-t border-zinc-900 pt-16 pb-12 px-4 sm:px-6 lg:px-8 relative"
+      className="bg-black pt-16 pb-12 px-4 sm:px-6 lg:px-8 relative"
     >
       <div className="max-w-7xl mx-auto flex flex-col items-center justify-center space-y-8 text-center">
         {/* Brand */}
@@ -92,7 +92,7 @@ export default function Footer() {
         </nav>
 
         {/* Bottom Bar & Scroll to Top */}
-        <div className="w-full pt-8 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
+        <div className="w-full pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
           <p>
             &copy; {new Date().getFullYear()} Shubham Kumar. All rights reserved.
           </p>

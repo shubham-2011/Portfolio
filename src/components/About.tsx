@@ -37,7 +37,7 @@ export default function About({ content }: AboutProps) {
       aria-label="About Shubham Kumar - Full Stack Developer"
       itemScope
       itemType="https://schema.org/Person"
-      className="py-24 px-4 sm:px-6 lg:px-8 bg-black relative border-t border-zinc-900 overflow-hidden"
+      className="py-24 px-4 sm:px-6 lg:px-8 bg-black relative overflow-hidden"
     >
       {/* 🌌 Squarespace Celestial 3D Stardust Particle Sphere Background */}
       <ParticleSphere particleCount={2200} speed={1.2} radiusFactor={0.48} className="opacity-100 z-0" />
