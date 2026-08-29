@@ -9,6 +9,7 @@ export interface Project {
   id?: string;
   title: string;
   subtitle?: string;
+  tagline?: string;
   description: string;
   image: string;
   tech: string[];
@@ -30,65 +31,69 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
     {
       id: '1',
       title: 'CINEMA',
-      subtitle: '(REVENUE & BOOKING HUB)',
+      subtitle: '(REVENUE & SEAT BOOKING)',
+      tagline: 'PUNE • FULL-STACK ARCHITECTURE',
       description:
-        'Full-stack cinema management platform featuring real-time seat reservation workflows, business revenue analytics, GPS-based theater discovery, and RBAC.',
+        'A full-stack cinema management platform creating dynamic reservation workflows, analytics, and business resilience.',
       image:
-        'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=1000',
-      tech: ['Angular 18', 'ASP.NET Core', 'C#', 'PostgreSQL', 'JWT'],
+        'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=1200',
+      tech: ['Angular 18', 'ASP.NET Core', 'C#', 'PostgreSQL'],
       links: {
         frontend: 'https://github.com/Shubham200020/Movie-ticket-Frontend',
         backend: 'https://github.com/Shubham200020/Movie-ticket-Backend',
       },
       features: [
-        'Interactive real-time seat reservation workflow',
-        'Business analytics module for revenue & ticket sales',
+        'Real-time seat reservation workflow',
+        'Cinema revenue & sales analytics dashboard',
       ],
     },
     {
       id: '2',
       title: 'INVENTORY',
       subtitle: '(MANAGEMENT & SALES OPS)',
+      tagline: 'SPRING BOOT • POSTGRESQL CLOUD',
       description:
         'Enterprise inventory and sales tracking application helping shopkeepers manage product catalogs, track real-time stock with FIFO logic, and analyze profit.',
       image:
-        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1000',
-      tech: ['Spring Boot', 'Java 17', 'Angular 18', 'PostgreSQL', 'Hibernate'],
+        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200',
+      tech: ['Spring Boot', 'Java 17', 'Angular 18', 'PostgreSQL'],
       links: {
         frontend: 'https://github.com/Shubham200020/product-management-system-frontend',
         backend: 'https://github.com/Shubham200020/product-management-system-backend',
       },
       features: [
-        'Inventory tracking with FIFO logic & automated stock alerts',
-        'Dynamic profit and revenue analytics dashboards',
+        'FIFO inventory decrement logic & automated alerts',
+        'Dynamic profit and revenue analytics',
       ],
     },
     {
       id: '3',
       title: 'APK ELITE',
-      subtitle: '(BUSINESS ARCHITECTURE)',
+      subtitle: '(DIGITAL SERVICES AGENCY)',
+      tagline: 'SEO OPTIMIZATION • RESPONSIVE UI',
       description:
         'High-performance, SEO-optimized business website developed for an elite service provider to expand online client acquisition and visibility.',
       image:
-        'https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?auto=format&fit=crop&q=80&w=1000',
-      tech: ['Angular', 'TypeScript', 'HTML5', 'CSS3', 'SEO'],
+        'https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?auto=format&fit=crop&q=80&w=1200',
+      tech: ['Angular', 'TypeScript', 'HTML5', 'CSS3'],
       links: {
         live: 'https://www.apkeliteservices.in/',
       },
       features: [
-        'SEO-optimized architecture with structured semantic metadata',
-        'Mobile-first responsive design for tablets and mobile devices',
+        'SEO metadata architecture with structured JSON-LD',
+        'Mobile-first responsive design across all devices',
       ],
     },
     {
       id: '4',
       title: 'COMMERCE',
       subtitle: '(MICROSERVICES GATEWAY)',
+      tagline: 'DISTRIBUTED SYSTEMS • DOCKER',
       description:
         'Cloud-native distributed commerce backend engineered with asynchronous event streaming, rate-limited API gateway, and resilient PostgreSQL transactions.',
       image:
-        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1000',
-      tech: ['Spring Boot', 'Java', 'PostgreSQL', 'Docker', 'Next.js'],
+        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1200',
+      tech: ['Spring Boot', 'Java', 'PostgreSQL', 'Docker'],
       links: {
         frontend: 'https://github.com/Shubham200020',
         backend: 'https://github.com/Shubham200020',
@@ -100,13 +105,14 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
     },
     {
       id: '5',
-      title: 'SYNC ENGINE',
-      subtitle: '(COLLABORATIVE CODE & CHAT)',
+      title: 'DEV SYNC',
+      subtitle: '(COLLABORATIVE ENGINE)',
+      tagline: 'WEBSOCKETS • REAL-TIME MESH',
       description:
         'Low-latency collaborative workspace supporting live code editing, instant WebSocket messaging, syntax highlighting, and room-based synchronization.',
       image:
-        'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=1000',
-      tech: ['React 19', 'Node.js', 'WebSockets', 'Redis', 'MongoDB'],
+        'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=1200',
+      tech: ['React 19', 'Node.js', 'WebSockets', 'MongoDB'],
       links: {
         frontend: 'https://github.com/Shubham200020',
         backend: 'https://github.com/Shubham200020',
@@ -123,38 +129,36 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
-  // Automatic Smooth Continuous Carousel Slide Left
+  // Automatic Smooth Sliding (Pauses on Hover)
   useEffect(() => {
     if (isHovered) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % projects.length);
-    }, 3800);
+    }, 4200);
 
     return () => clearInterval(timer);
   }, [isHovered, projects.length]);
 
-  // Handle Drag Gesture
+  // Swipe gesture support
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const swipeThreshold = 50;
+    const swipeThreshold = 40;
     if (info.offset.x < -swipeThreshold) {
-      // Swiped Left -> Advance to next
       setCurrentIndex((prev) => (prev + 1) % projects.length);
     } else if (info.offset.x > swipeThreshold) {
-      // Swiped Right -> Back to prev
       setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
     }
   };
 
-  // Continuous 3D position calculation for each card
+  // Exact 3D coordinates matching Squarespace
   const getCardProps = (index: number) => {
     let diff = (index - currentIndex) % projects.length;
     if (diff < -Math.floor(projects.length / 2)) diff += projects.length;
     if (diff > Math.floor(projects.length / 2)) diff -= projects.length;
 
     if (diff === 0) {
-      // Center Active Card
+      // Center Active Card: Flat, elevated, spotlight
       return {
-        x: 0,
+        x: '0%',
         rotateY: 0,
         scale: 1,
         zIndex: 30,
@@ -162,31 +166,31 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         pointerEvents: 'auto' as const,
       };
     } else if (diff === 1 || diff === -(projects.length - 1)) {
-      // Right Card (Tilted inward to left)
+      // Right Card: Tilted inward at -24deg, seamlessly framing center card
       return {
-        x: '75%',
-        rotateY: -26,
-        scale: 0.84,
+        x: '62%',
+        rotateY: -24,
+        scale: 0.88,
         zIndex: 10,
-        opacity: 0.8,
+        opacity: 0.85,
         pointerEvents: 'auto' as const,
       };
     } else if (diff === -1 || diff === projects.length - 1) {
-      // Left Card (Tilted inward to right)
+      // Left Card: Tilted inward at +24deg, seamlessly framing center card
       return {
-        x: '-75%',
-        rotateY: 26,
-        scale: 0.84,
+        x: '-62%',
+        rotateY: 24,
+        scale: 0.88,
         zIndex: 10,
-        opacity: 0.8,
+        opacity: 0.85,
         pointerEvents: 'auto' as const,
       };
     } else {
-      // Far Cards (Prepped behind)
+      // Far hidden cards
       return {
-        x: diff > 0 ? '120%' : '-120%',
+        x: diff > 0 ? '110%' : '-110%',
         rotateY: diff > 0 ? -35 : 35,
-        scale: 0.7,
+        scale: 0.75,
         zIndex: 1,
         opacity: 0,
         pointerEvents: 'none' as const,
@@ -199,11 +203,11 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
       id="projects"
       className="py-16 sm:py-24 bg-black relative border-t border-zinc-900 overflow-hidden"
     >
-      {/* Background Ambient Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[450px] bg-white/[0.02] rounded-full blur-[180px] pointer-events-none" />
+      {/* Background Ambient Spotlight */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[950px] h-[500px] bg-white/[0.02] rounded-full blur-[180px] pointer-events-none" />
 
       {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 relative z-10 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 relative z-10 text-center">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-semibold uppercase tracking-widest mb-3">
           <Sparkles className="w-3.5 h-3.5 text-white" />
           <span>Interactive 3D Showcase</span>
@@ -213,18 +217,18 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
           Selected Work
         </h2>
         <p className="text-xs sm:text-sm text-zinc-400 mt-2">
-          Smooth continuous 3D glide &bull; Auto-sliding left &bull; Hover to pause
+          Squarespace 3D curved cylinder &bull; Auto-sliding left &bull; Hover to pause
         </p>
       </div>
 
       {/* ========================================================================= */}
-      {/* 3D PERSPECTIVE STAGE: CONTINUOUS 60FPS PHYSICAL GLIDE (ZERO BLINKING)     */}
+      {/* EXACT SQUARESPACE 3D STAGE (WIDESCREEN TABLET CANVASES WITH 3D OVERLAP)   */}
       {/* ========================================================================= */}
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative w-full max-w-7xl mx-auto h-[530px] sm:h-[600px] flex items-center justify-center select-none overflow-visible px-4"
-        style={{ perspective: '1400px' }}
+        className="relative w-full max-w-7xl mx-auto h-[480px] sm:h-[530px] lg:h-[560px] flex items-center justify-center select-none overflow-visible px-4"
+        style={{ perspective: '1600px' }}
       >
         {projects.map((project, idx) => {
           const cardProps = getCardProps(idx);
@@ -245,34 +249,37 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
                 opacity: cardProps.opacity,
               }}
               transition={{
-                duration: 0.85,
-                ease: [0.16, 1, 0.3, 1], // Smooth Apple/Squarespace physics curve
+                duration: 0.9,
+                ease: [0.16, 1, 0.3, 1], // Smooth Squarespace physical inertia
               }}
               onClick={() => {
                 if (!isCenter) setCurrentIndex(idx);
               }}
-              className="absolute w-[86vw] sm:w-[440px] lg:w-[480px] h-[490px] sm:h-[560px] rounded-[32px] overflow-hidden border border-white/20 bg-[#0c0c0f] shadow-[0_25px_70px_rgba(0,0,0,0.95)] flex flex-col justify-between p-6 sm:p-7 cursor-grab active:cursor-grabbing hover:border-white/40"
+              className="absolute w-[88vw] sm:w-[620px] lg:w-[740px] h-[450px] sm:h-[500px] lg:h-[530px] rounded-[32px] overflow-hidden border border-white/20 bg-[#0c0c0e] shadow-[0_30px_90px_rgba(0,0,0,0.95)] flex flex-col justify-between p-6 sm:p-8 lg:p-9 cursor-grab active:cursor-grabbing hover:border-white/40"
               style={{
                 pointerEvents: cardProps.pointerEvents,
                 transformStyle: 'preserve-3d',
               }}
             >
-              {/* Card Top Nav */}
-              <div className="flex items-center justify-between text-xs text-zinc-300 pb-3 border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300">
-                    0{idx + 1} &bull; {project.tech[0] || 'ENGINEERING'}
+              {/* 1. Top Navigation Bar (Identical to Squarespace Template Nav) */}
+              <div className="flex items-center justify-between text-xs text-zinc-300 pb-4 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                  </div>
+                  <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 font-semibold">
+                    {project.title} STUDIO
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4 text-xs font-mono">
                   {project.links?.frontend && (
                     <a
                       href={project.links.frontend}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-white inline-flex items-center gap-1 text-[11px] text-zinc-400 hover:underline transition-colors"
+                      className="hover:text-white inline-flex items-center gap-1 text-zinc-400 hover:underline transition-colors"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Github className="w-3.5 h-3.5" />
@@ -285,10 +292,10 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
                       href={project.links.live}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all inline-flex items-center gap-1 shadow-md shadow-white/10"
+                      className="px-3.5 py-1.5 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all inline-flex items-center gap-1 shadow-sm"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <span>Live</span>
+                      <span>Live Site</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   ) : project.links?.frontend ? (
@@ -296,7 +303,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
                       href={project.links.frontend}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3 py-1 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all inline-flex items-center gap-1"
+                      className="px-3.5 py-1.5 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all inline-flex items-center gap-1"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span>Explore</span>
@@ -306,62 +313,64 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
                 </div>
               </div>
 
-              {/* Bold Title (Matches Squarespace "Balance (WELLNESS CENTER)") */}
-              <div className="pt-2 pb-1 space-y-1 text-left shrink-0">
-                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none uppercase">
-                  {project.title}
+              {/* 2. Huge Squarespace Editorial Typography (Identical to "LIO AGENCY" / "Balance") */}
+              <div className="py-4 sm:py-6 text-center space-y-2 shrink-0">
+                <h3 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase leading-none">
+                  {project.title}{' '}
+                  <span className="text-sm sm:text-xl lg:text-2xl font-light text-zinc-400 font-mono block sm:inline mt-1 sm:mt-0">
+                    {project.subtitle}
+                  </span>
                 </h3>
-                <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-400">
-                  {project.subtitle || 'PUNE &bull; FULL-STACK ARCHITECTURE'}
+
+                <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.25em] text-zinc-400 pt-1">
+                  {project.tagline}
                 </p>
               </div>
 
-              {/* Visual Preview Screenshot */}
-              <div className="relative flex-1 my-3 w-full rounded-2xl overflow-hidden border border-white/15 bg-black group/item">
-                <Image
-                  src={project.image}
-                  alt={project.title}
-                  fill
-                  priority={idx < 2}
-                  className="object-cover group-hover/item:scale-105 transition-transform duration-700 brightness-95 group-hover/item:brightness-100"
-                  sizes="480px"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-85" />
-
-                {/* Floating Tech Badges */}
-                <div className="absolute top-3 left-3 flex flex-wrap gap-1 z-10">
-                  {project.tech.slice(0, 3).map((t) => (
-                    <span
-                      key={t}
-                      className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/80 backdrop-blur-md text-white border border-white/20 font-mono"
-                    >
-                      {t}
-                    </span>
-                  ))}
+              {/* 3. Bottom 3-Column Preview Gallery (Identical to 01, 02, 03 in Squarespace) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-white/10 shrink-0">
+                {/* Column 1: Main Project Screenshot Banner */}
+                <div className="relative h-24 sm:h-28 rounded-2xl overflow-hidden bg-black border border-white/10 group/item">
+                  <Image
+                    src={project.image}
+                    alt={project.title}
+                    fill
+                    priority={idx < 2}
+                    className="object-cover group-hover/item:scale-105 transition-transform duration-700 brightness-90 group-hover/item:brightness-100"
+                    sizes="320px"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
+                  <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-white">
+                    <span className="font-bold">01 VIEW DEMO</span>
+                    <span className="text-zinc-400 text-[9px]">&rarr;</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Bottom Card Footer */}
-              <div className="space-y-3 pt-2 border-t border-white/10 shrink-0">
-                <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed">
-                  {project.description}
-                </p>
-
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-1">
-                    {project.tech.slice(0, 3).map((t) => (
+                {/* Column 2: Tech Stack Badges */}
+                <div className="p-3 sm:p-3.5 rounded-2xl bg-black/60 border border-white/10 flex flex-col justify-between space-y-2">
+                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
+                    02 TECH STACK
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {project.tech.map((t) => (
                       <span
                         key={t}
-                        className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-zinc-200 border border-white/10 font-mono"
+                        className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10 text-white border border-white/15 font-mono"
                       >
                         {t}
                       </span>
                     ))}
                   </div>
+                </div>
 
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-                    {idx + 1} / {projects.length}
+                {/* Column 3: Highlights & Deliverable */}
+                <div className="p-3 sm:p-3.5 rounded-2xl bg-black/60 border border-white/10 flex flex-col justify-between space-y-2">
+                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
+                    03 ARCHITECTURE
                   </span>
+                  <p className="text-[11px] text-zinc-300 line-clamp-2 leading-relaxed">
+                    {project.description}
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -370,7 +379,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
       </div>
 
       {/* Slide Indicators */}
-      <div className="mt-6 flex items-center justify-center gap-2">
+      <div className="mt-8 flex items-center justify-center gap-2">
         {projects.map((_, idx) => (
           <button
             key={idx}
@@ -385,10 +394,10 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         ))}
       </div>
 
-      {/* Caption Underneath */}
-      <div className="mt-3 text-center">
+      {/* Bottom Caption (Matches "Join millions of entrepreneurs..." from Squarespace) */}
+      <div className="mt-4 text-center">
         <p className="text-xs font-mono text-zinc-500 uppercase tracking-widest">
-          Squarespace 3D Showcase &bull; Swipe or click side card to slide
+          Explore production-ready full stack systems engineered by Shubham
         </p>
       </div>
     </section>
