@@ -54,7 +54,11 @@ export default function ContactForm() {
   };
 
   return (
-    <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950 relative border-t border-zinc-900">
+    <section
+      id="contact"
+      aria-label="Contact Shubham Kumar"
+      className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950 relative border-t border-zinc-900"
+    >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-bold mb-2">Get In Touch</p>
@@ -78,10 +82,11 @@ export default function ContactForm() {
                 I am currently open to full-time software developer opportunities, contract engagements, and innovative full stack development collaborations.
               </p>
 
-              <div className="space-y-4 pt-2">
+              <address className="not-italic space-y-4 pt-2">
                 <a
                   href="mailto:shubhammisra800@gmail.com"
                   className="flex items-center gap-4 p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 hover:border-white/30 transition-colors group"
+                  aria-label="Send email to shubhammisra800@gmail.com"
                 >
                   <div className="p-3 rounded-lg bg-white/10 text-white group-hover:scale-110 transition-transform">
                     <Mail className="w-5 h-5" />
@@ -97,6 +102,7 @@ export default function ContactForm() {
                 <a
                   href="tel:+919322887529"
                   className="flex items-center gap-4 p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 hover:border-white/30 transition-colors group"
+                  aria-label="Call or WhatsApp +91 9322887529"
                 >
                   <div className="p-3 rounded-lg bg-white/10 text-white group-hover:scale-110 transition-transform">
                     <Phone className="w-5 h-5" />
@@ -120,7 +126,7 @@ export default function ContactForm() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </address>
             </div>
           </div>
 

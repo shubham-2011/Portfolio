@@ -79,7 +79,11 @@ export default function Education({
     passedExperience && passedExperience.length > 0 ? passedExperience : defaultExperience;
 
   return (
-    <section id="education" className="py-20 px-4 sm:px-6 lg:px-8 bg-black relative border-t border-zinc-900">
+    <section
+      id="education"
+      aria-label="Education & Professional Experience"
+      className="py-20 px-4 sm:px-6 lg:px-8 bg-black relative border-t border-zinc-900"
+    >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-bold mb-2">Qualifications & Journey</p>
@@ -108,7 +112,11 @@ export default function Education({
                   {/* Glowing Node Dot */}
                   <span className="absolute -left-[30px] sm:-left-[37px] top-1.5 w-4 h-4 rounded-full border-2 border-white bg-black group-hover:bg-white group-hover:scale-125 transition-all shadow-md shadow-white/30" />
 
-                  <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-white/30 hover:bg-zinc-900 transition-all duration-300 space-y-2">
+                  <article
+                    itemScope
+                    itemType="https://schema.org/EducationalOccupationalCredential"
+                    className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-white/30 hover:bg-zinc-900 transition-all duration-300 space-y-2"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white border border-white/15">
                         <Calendar className="w-3.5 h-3.5" />
@@ -122,22 +130,29 @@ export default function Education({
                       )}
                     </div>
 
-                    <h4 className="text-lg font-bold text-white group-hover:text-zinc-200 transition-colors">
+                    <h4
+                      className="text-lg font-bold text-white group-hover:text-zinc-200 transition-colors"
+                      itemProp="credentialCategory"
+                    >
                       {item.title}
                     </h4>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
-                      {item.university && <span className="font-semibold text-zinc-300">{item.university}</span>}
+                      {item.university && (
+                        <span className="font-semibold text-zinc-300" itemProp="recognizedBy">
+                          {item.university}
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-zinc-400" />
                         {item.place}
                       </span>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed pt-1">
+                    <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed pt-1" itemProp="description">
                       {item.description}
                     </p>
-                  </div>
+                  </article>
                 </div>
               ))}
             </div>
@@ -160,13 +175,20 @@ export default function Education({
                 <div key={idx} className="relative group">
                   <span className="absolute -left-[30px] sm:-left-[37px] top-1.5 w-4 h-4 rounded-full border-2 border-white bg-black group-hover:bg-white group-hover:scale-125 transition-all shadow-md shadow-white/30" />
 
-                  <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-white/30 hover:bg-zinc-900 transition-all duration-300 space-y-2">
+                  <article
+                    itemScope
+                    itemType="https://schema.org/Role"
+                    className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 hover:border-white/30 hover:bg-zinc-900 transition-all duration-300 space-y-2"
+                  >
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white border border-white/15">
                       <Calendar className="w-3.5 h-3.5" />
                       {item.year}
                     </span>
 
-                    <h4 className="text-lg font-bold text-white group-hover:text-zinc-200 transition-colors">
+                    <h4
+                      className="text-lg font-bold text-white group-hover:text-zinc-200 transition-colors"
+                      itemProp="roleName"
+                    >
                       {item.role}
                     </h4>
 
@@ -174,10 +196,10 @@ export default function Education({
                       {item.company}
                     </p>
 
-                    <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed pt-1">
+                    <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed pt-1" itemProp="description">
                       {item.description}
                     </p>
-                  </div>
+                  </article>
                 </div>
               ))}
             </div>

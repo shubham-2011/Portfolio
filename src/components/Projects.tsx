@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, PanInfo } from 'framer-motion';
-import { ExternalLink, Github, Sparkles } from 'lucide-react';
+import { ExternalLink, Github, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface Project {
   id?: string;
@@ -128,6 +128,29 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [activeMobileIdx, setActiveMobileIdx] = useState(0);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleMobileScroll = () => {
+    if (!mobileScrollRef.current) return;
+    const scrollLeft = mobileScrollRef.current.scrollLeft;
+    const cardWidth = mobileScrollRef.current.offsetWidth * 0.85;
+    const newIdx = Math.round(scrollLeft / (cardWidth + 16));
+    if (newIdx >= 0 && newIdx < projects.length && newIdx !== activeMobileIdx) {
+      setActiveMobileIdx(newIdx);
+    }
+  };
+
+  const scrollToMobileProject = (idx: number) => {
+    if (!mobileScrollRef.current) return;
+    const targetIdx = Math.max(0, Math.min(idx, projects.length - 1));
+    const cardWidth = mobileScrollRef.current.offsetWidth * 0.85;
+    mobileScrollRef.current.scrollTo({
+      left: targetIdx * (cardWidth + 16),
+      behavior: 'smooth',
+    });
+    setActiveMobileIdx(targetIdx);
+  };
 
   // Automatic Smooth Sliding (Pauses on Hover)
   useEffect(() => {
@@ -243,6 +266,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
   return (
     <section
       id="projects"
+      aria-label="Featured Software Engineering Projects"
       className="py-16 sm:py-24 bg-black relative border-t border-zinc-900 overflow-hidden"
     >
       {/* Background Ambient Glow */}
@@ -264,13 +288,168 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
       </div>
 
       {/* ========================================================================= */}
-      {/* 3D PERSPECTIVE STAGE WITH DOMINANT BIG IMAGE VISUAL SECTIONS              */}
+      {/* 📱 EXCLUSIVE MOBILE PROJECTS SNAP-REEL (< md)                             */}
+      {/* ========================================================================= */}
+      <div className="md:hidden px-4 space-y-4">
+        {/* Mobile Horizontal Snap Reel */}
+        <div
+          ref={mobileScrollRef}
+          onScroll={handleMobileScroll}
+          className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 pt-1 no-scrollbar -mx-4 px-4 scroll-smooth"
+        >
+          {projects.map((project, idx) => (
+            <article
+              key={project.id || idx}
+              itemScope
+              itemType="https://schema.org/SoftwareApplication"
+              className="w-[86vw] max-w-[340px] shrink-0 snap-center rounded-3xl overflow-hidden border border-white/20 bg-[#0e0e11] shadow-2xl flex flex-col justify-between p-4 relative"
+            >
+              {/* 1. Mobile Card Top Bar */}
+              <div className="flex items-center justify-between text-xs pb-2.5 border-b border-white/10">
+                <div className="flex items-center gap-1.5 font-mono text-[11px] text-zinc-300 font-bold uppercase">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  <span>0{idx + 1} &bull; {project.title}</span>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-500">
+                  0{idx + 1}/0{projects.length}
+                </span>
+              </div>
+
+              {/* 2. Dominant Big Screenshot Canvas */}
+              <div className="relative w-full h-48 my-3 rounded-2xl overflow-hidden border border-white/15 bg-black">
+                <Image
+                  src={project.image}
+                  alt={`${project.title} — Full Stack Project Architecture & User Interface by Shubham Kumar`}
+                  fill
+                  className="object-cover object-center"
+                  sizes="(max-width: 768px) 86vw, 340px"
+                  itemProp="image"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+                {/* Tech Pills Overlay */}
+                <div className="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
+                  {project.tech.slice(0, 3).map((t) => (
+                    <span
+                      key={t}
+                      className="px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-black/85 text-zinc-200 border border-white/20"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Title & Tagline inside Canvas */}
+                <div className="absolute bottom-2.5 left-3 right-3 z-10">
+                  <h3 className="text-xl font-black text-white tracking-tight uppercase leading-none drop-shadow" itemProp="name">
+                    {project.title}
+                  </h3>
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-300 mt-1">
+                    {project.tagline}
+                  </p>
+                </div>
+              </div>
+
+              {/* 3. Description */}
+              <p className="text-xs text-zinc-300 leading-relaxed line-clamp-2 my-1" itemProp="description">
+                {project.description}
+              </p>
+
+              {/* 4. Action Buttons Dock */}
+              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/10 mt-2">
+                {project.links?.frontend ? (
+                  <a
+                    href={project.links.frontend}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2.5 px-3 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                    aria-label={`View source code of ${project.title} on GitHub`}
+                  >
+                    <Github className="w-3.5 h-3.5" />
+                    <span>Code</span>
+                  </a>
+                ) : (
+                  <div className="py-2.5 px-3 rounded-xl bg-zinc-950 border border-zinc-850 text-zinc-500 font-mono text-[11px] flex items-center justify-center">
+                    Confidential
+                  </div>
+                )}
+
+                {project.links?.live ? (
+                  <a
+                    href={project.links.live}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2.5 px-3 rounded-xl bg-white text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-transform"
+                    aria-label={`Visit live demo for ${project.title}`}
+                  >
+                    <span>Live Site</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : project.links?.frontend ? (
+                  <a
+                    href={project.links.frontend}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2.5 px-3 rounded-xl bg-white text-black font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                    aria-label={`Explore repository for ${project.title}`}
+                  >
+                    <span>Explore</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : (
+                  <div className="py-2.5 px-3 rounded-xl bg-zinc-950 border border-zinc-850 text-zinc-500 font-mono text-[11px] flex items-center justify-center">
+                    Internal
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {/* Mobile Navigation Controls Bar */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-1.5">
+            {projects.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => scrollToMobileProject(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  activeMobileIdx === idx ? 'w-6 bg-white' : 'w-1.5 bg-zinc-800'
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => scrollToMobileProject(activeMobileIdx - 1)}
+              disabled={activeMobileIdx === 0}
+              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-30 active:scale-90 transition-transform"
+              aria-label="Previous project"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => scrollToMobileProject(activeMobileIdx + 1)}
+              disabled={activeMobileIdx === projects.length - 1}
+              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 disabled:opacity-30 active:scale-90 transition-transform"
+              aria-label="Next project"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 💻 DESKTOP 3D PERSPECTIVE STAGE (hidden on mobile, visible on md:flex)    */}
       {/* ========================================================================= */}
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onWheel={handleWheel}
-        className="relative w-full max-w-7xl mx-auto h-[500px] sm:h-[560px] lg:h-[590px] flex items-center justify-center select-none overflow-visible px-4"
+        className="hidden md:flex relative w-full max-w-7xl mx-auto h-[500px] sm:h-[560px] lg:h-[590px] items-center justify-center select-none overflow-visible px-4"
         style={{ perspective: '1600px' }}
       >
         {projects.map((project, idx) => {
@@ -278,8 +457,10 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
           const isCenter = (idx - currentIndex) % projects.length === 0;
 
           return (
-            <motion.div
+            <motion.article
               key={project.id || idx}
+              itemScope
+              itemType="https://schema.org/SoftwareApplication"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.15}
@@ -320,6 +501,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-white inline-flex items-center gap-1 text-zinc-400 hover:underline transition-colors"
+                      aria-label={`View source code of ${project.title} on GitHub`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Github className="w-3.5 h-3.5" />
@@ -333,6 +515,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3.5 py-1.5 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all inline-flex items-center gap-1 shadow-sm"
+                      aria-label={`Visit live demo for ${project.title}`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span>Live Site</span>
@@ -344,6 +527,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3.5 py-1.5 rounded-full bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all inline-flex items-center gap-1"
+                      aria-label={`Explore repository for ${project.title}`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <span>Explore</span>
@@ -357,11 +541,12 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
               <div className="relative flex-1 my-3 w-full rounded-2xl overflow-hidden border border-white/15 bg-black group/item">
                 <Image
                   src={project.image}
-                  alt={project.title}
+                  alt={`${project.title} — Full Stack Project Architecture & User Interface by Shubham Kumar`}
                   fill
                   priority={idx < 2}
                   className="object-cover object-center group-hover/item:scale-105 transition-transform duration-700 brightness-95 group-hover/item:brightness-100"
                   sizes="(max-width: 768px) 90vw, 740px"
+                  itemProp="image"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
@@ -379,7 +564,10 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
 
                 {/* Overlay Big Bold Title inside the visual canvas */}
                 <div className="absolute bottom-4 left-4 right-4 z-10">
-                  <h3 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase leading-none drop-shadow-md">
+                  <h3
+                    className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase leading-none drop-shadow-md"
+                    itemProp="name"
+                  >
                     {project.title}{' '}
                     <span className="text-xs sm:text-base lg:text-lg font-light text-zinc-300 font-mono block sm:inline mt-1 sm:mt-0">
                       {project.subtitle}
@@ -393,20 +581,20 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
 
               {/* 3. Card Bottom Bar: Summary Description */}
               <div className="pt-2 border-t border-white/10 shrink-0 flex items-center justify-between text-xs text-zinc-400">
-                <p className="line-clamp-1 max-w-[80%] text-zinc-300">
+                <p className="line-clamp-1 max-w-[80%] text-zinc-300" itemProp="description">
                   {project.description}
                 </p>
                 <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-wider">
                   0{idx + 1} / 0{projects.length}
                 </span>
               </div>
-            </motion.div>
+            </motion.article>
           );
         })}
       </div>
 
-      {/* Slide Indicators */}
-      <div className="mt-8 flex items-center justify-center gap-2">
+      {/* Desktop Slide Indicators */}
+      <div className="hidden md:flex mt-8 items-center justify-center gap-2">
         {projects.map((_, idx) => (
           <button
             key={idx}

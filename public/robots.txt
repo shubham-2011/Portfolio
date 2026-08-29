@@ -1,9 +1,10 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
+Disallow: /api/
 Disallow: /login/
 
-Sitemap: https://yourportfolio.com/sitemap.xml
+Sitemap: https://www.skm-tech.xyz/sitemap.xml
 
 # Google
 User-agent: Googlebot

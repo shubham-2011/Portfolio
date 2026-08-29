@@ -31,7 +31,13 @@ export default function About({ content }: AboutProps) {
   const degree = content?.degree || 'BSc & MSc Computer Science';
 
   return (
-    <section id="about" className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950 relative border-t border-zinc-900 overflow-hidden">
+    <section
+      id="about"
+      aria-label="About Shubham Kumar - Full Stack Developer"
+      itemScope
+      itemType="https://schema.org/Person"
+      className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950 relative border-t border-zinc-900 overflow-hidden"
+    >
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -63,17 +69,18 @@ export default function About({ content }: AboutProps) {
               <div className="relative w-full h-full rounded-xl overflow-hidden">
                 <Image
                   src="/shubham-rem.png"
-                  alt="Shubham Profile Portrait"
+                  alt="Shubham Kumar — Full Stack Software Developer Profile Portrait"
                   fill
                   className="object-contain object-bottom group-hover:scale-105 transition-transform duration-500"
                   sizes="(max-width: 768px) 100vw, 400px"
+                  itemProp="image"
                 />
               </div>
             </div>
           </motion.div>
 
           {/* Text Content & Fast Facts */}
-          <motion.div
+          <motion.article
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -82,33 +89,41 @@ export default function About({ content }: AboutProps) {
           >
             <div className="space-y-2">
               <h3 className="text-2xl sm:text-3xl font-bold text-white">
-                {subtitle}{' '}
+                <span itemProp="jobTitle">{subtitle}</span>{' '}
                 <span className="animate-text-shimmer font-semibold">{subtitleHighlight}</span>
               </h3>
-              <p className="text-zinc-300 leading-relaxed">{bio}</p>
+              <p className="text-zinc-300 leading-relaxed" itemProp="description">{bio}</p>
             </div>
 
-            {/* Quick Contact Specs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-3">
+            {/* Quick Contact Specs in Semantic Address Tag */}
+            <address className="not-italic grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <a
+                href={`tel:${phone.replace(/\s+/g, '')}`}
+                className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-3"
+                aria-label={`Call Shubham at ${phone}`}
+              >
                 <div className="p-2.5 rounded-lg bg-white/10 text-white">
                   <Phone className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-xs text-zinc-400">Phone</p>
-                  <p className="text-sm font-semibold text-white">{phone}</p>
+                  <p className="text-sm font-semibold text-white" itemProp="telephone">{phone}</p>
                 </div>
-              </div>
+              </a>
 
-              <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-3">
+              <a
+                href={`mailto:${email}`}
+                className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-3"
+                aria-label={`Email Shubham at ${email}`}
+              >
                 <div className="p-2.5 rounded-lg bg-white/10 text-white">
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
                   <p className="text-xs text-zinc-400">Email</p>
-                  <p className="text-sm font-semibold text-white">{email}</p>
+                  <p className="text-sm font-semibold text-white" itemProp="email">{email}</p>
                 </div>
-              </div>
+              </a>
 
               <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-3">
                 <div className="p-2.5 rounded-lg bg-white/10 text-white">
@@ -116,7 +131,7 @@ export default function About({ content }: AboutProps) {
                 </div>
                 <div>
                   <p className="text-xs text-zinc-400">Location</p>
-                  <p className="text-sm font-semibold text-white">{location}</p>
+                  <p className="text-sm font-semibold text-white" itemProp="addressLocality">{location}</p>
                 </div>
               </div>
 
@@ -129,7 +144,7 @@ export default function About({ content }: AboutProps) {
                   <p className="text-sm font-semibold text-white">{degree}</p>
                 </div>
               </div>
-            </div>
+            </address>
 
             {/* Core Competency Pillars */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -153,7 +168,7 @@ export default function About({ content }: AboutProps) {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </motion.article>
         </div>
       </div>
     </section>

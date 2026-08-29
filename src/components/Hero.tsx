@@ -81,9 +81,121 @@ export default function Hero({ content }: HeroProps) {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-white/[0.03] rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-[350px] h-[350px] bg-zinc-700/[0.1] rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+      {/* ========================================================================= */}
+      {/* 📱 EXCLUSIVE MOBILE HERO EXPERIENCE (< lg)                                */}
+      {/* ========================================================================= */}
+      <div className="lg:hidden flex flex-col items-center text-center space-y-5 w-full relative z-10 max-w-md mx-auto">
+        {/* Mobile Status Pill */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-white/20 text-[11px] font-mono uppercase tracking-wider text-zinc-300 shadow-lg shadow-white/5"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+          </span>
+          <span>{status}</span>
+        </motion.div>
+
+        {/* Mobile Centerpiece Avatar Capsule with Orbit Badges */}
+        <div className="relative my-2">
+          <div className="absolute inset-0 bg-white/10 rounded-full blur-2xl -z-10" />
+
+          {/* Framed Circular Avatar */}
+          <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-full p-1 bg-gradient-to-b from-white/30 via-zinc-800 to-black border-2 border-white/25 shadow-2xl overflow-hidden mx-auto">
+            <Image
+              src={profileImage}
+              alt={`${name} - ${baseTitle}`}
+              fill
+              priority
+              className="object-cover object-top p-1"
+              sizes="(max-width: 640px) 160px, 192px"
+            />
+          </div>
+
+          {/* Orbiting Satellite Badges */}
+          <div className="absolute -top-1 -left-2 px-2.5 py-1 rounded-full bg-black/90 border border-white/25 text-[10px] font-bold font-mono text-white shadow-xl backdrop-blur-md">
+            ⚡ Spring Boot
+          </div>
+          <div className="absolute top-1 -right-2 px-2.5 py-1 rounded-full bg-black/90 border border-white/25 text-[10px] font-bold font-mono text-white shadow-xl backdrop-blur-md">
+            ⚛ React / Angular
+          </div>
+          <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-zinc-950 border border-white/30 text-[10px] font-mono text-zinc-300 shadow-xl backdrop-blur-md flex items-center gap-1.5 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span>PostgreSQL & Cloud</span>
+          </div>
+        </div>
+
+        {/* Mobile Punchy Typography */}
+        <div className="space-y-1.5 px-2">
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight uppercase leading-none">
+            I&apos;m <span className="animate-text-shimmer">{name}</span>
+          </h1>
+          <div className="min-h-[28px] flex items-center justify-center">
+            <span className="text-sm sm:text-base text-zinc-300 font-semibold font-mono tracking-tight">
+              {currentText}
+            </span>
+            <span className="inline-block w-[2px] h-4 bg-white ml-1 animate-pulse" />
+          </div>
+          <p className="text-xs text-zinc-400 leading-relaxed max-w-sm mx-auto pt-0.5">
+            {description}
+          </p>
+        </div>
+
+        {/* Mobile Quick Action Thumb Dock */}
+        <div className="grid grid-cols-2 gap-2.5 w-full pt-1">
+          <a
+            href="mailto:shubhammisra800@gmail.com"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white text-black font-bold text-xs shadow-lg shadow-white/10 active:scale-95 transition-transform"
+          >
+            <Mail className="w-3.5 h-3.5" />
+            <span>Hire / Email</span>
+          </a>
+          <a
+            href={resumeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-semibold text-xs active:scale-95 transition-transform"
+          >
+            <FileText className="w-3.5 h-3.5 text-zinc-300" />
+            <span>Resume PDF</span>
+          </a>
+        </div>
+
+        {/* Mobile Floating Glass Stats Ribbon */}
+        <div className="w-full p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800/90 shadow-xl backdrop-blur-md grid grid-cols-3 divide-x divide-zinc-800 text-center">
+          <div className="px-1">
+            <p className="text-lg font-black text-white tracking-tight">{yearsExperience}</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Experience</p>
+          </div>
+          <div className="px-1">
+            <p className="text-lg font-black text-white tracking-tight">{technologiesCount}</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Tech Stack</p>
+          </div>
+          <div className="px-1">
+            <p className="text-lg font-black text-white tracking-tight">{clientSatisfaction}</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Quality</p>
+          </div>
+        </div>
+
+        {/* Mobile Scroll Indicator */}
+        <Link
+          href="#projects"
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors pt-1"
+        >
+          <span>Explore Projects Reel</span>
+          <ArrowDown className="w-3.5 h-3.5 animate-bounce" />
+        </Link>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 💻 DESKTOP TWO-COLUMN HERO (hidden on mobile, visible on lg:grid)         */}
+      {/* ========================================================================= */}
+      <div className="hidden lg:grid max-w-7xl mx-auto w-full grid-cols-12 gap-12 items-center relative z-10">
         {/* Left Column: Text & Animated CTAs */}
-        <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+        <div className="lg:col-span-7 space-y-6 text-left">
           {/* Animated Status Pill */}
           <motion.div
             initial={{ opacity: 0, y: -15 }}
@@ -110,7 +222,7 @@ export default function Hero({ content }: HeroProps) {
             </h1>
 
             {/* Dynamic Typewriter Title with Animated Cursor */}
-            <div className="h-10 sm:h-12 flex items-center justify-center lg:justify-start">
+            <div className="h-10 sm:h-12 flex items-center justify-start">
               <span className="text-xl sm:text-2xl lg:text-3xl text-zinc-300 font-semibold tracking-tight">
                 {currentText}
               </span>
@@ -123,7 +235,7 @@ export default function Hero({ content }: HeroProps) {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.25 }}
-            className="text-zinc-300 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed"
+            className="text-zinc-300 text-base sm:text-lg max-w-2xl leading-relaxed"
           >
             {description}
           </motion.p>
@@ -133,7 +245,7 @@ export default function Hero({ content }: HeroProps) {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.35 }}
-            className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2"
+            className="flex flex-wrap items-center justify-start gap-4 pt-2"
           >
             <a
               href="mailto:shubhammisra800@gmail.com"
@@ -167,7 +279,7 @@ export default function Hero({ content }: HeroProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.45 }}
-            className="pt-6 border-t border-zinc-800 grid grid-cols-3 gap-4 max-w-lg mx-auto lg:mx-0"
+            className="pt-6 border-t border-zinc-800 grid grid-cols-3 gap-4 max-w-lg"
           >
             <div>
               <p className="text-2xl font-bold text-white tracking-tight">{yearsExperience}</p>

@@ -33,7 +33,11 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-black border-t border-zinc-900 pt-16 pb-12 px-4 sm:px-6 lg:px-8 relative">
+    <footer
+      role="contentinfo"
+      aria-label="Site Footer"
+      className="bg-black border-t border-zinc-900 pt-16 pb-12 px-4 sm:px-6 lg:px-8 relative"
+    >
       <div className="max-w-7xl mx-auto flex flex-col items-center justify-center space-y-8 text-center">
         {/* Brand */}
         <div className="space-y-2">
@@ -46,15 +50,15 @@ export default function Footer() {
         </div>
 
         {/* Social Icons */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4" aria-label="Social media profiles">
           {socialLinks.map((item) => (
             <a
               key={item.name}
               href={item.href}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noopener noreferrer me"
               className="p-3 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-white hover:border-white/40 hover:scale-110 hover:shadow-lg hover:shadow-white/10 transition-all duration-300"
-              aria-label={item.name}
+              aria-label={`Visit Shubham's ${item.name} profile`}
             >
               {item.icon}
             </a>
@@ -62,7 +66,11 @@ export default function Footer() {
         </div>
 
         {/* Navigation Quick Links */}
-        <nav className="flex flex-wrap justify-center gap-6 text-sm text-zinc-400">
+        <nav
+          role="navigation"
+          aria-label="Footer quick links"
+          className="flex flex-wrap justify-center gap-6 text-sm text-zinc-400"
+        >
           <Link href="#home" className="hover:text-white transition-colors">
             Home
           </Link>

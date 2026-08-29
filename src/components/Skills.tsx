@@ -78,7 +78,11 @@ export default function Skills({ categories: passedCategories }: SkillsProps) {
       : categories.filter((c) => c.category === activeTab);
 
   return (
-    <section id="skills" className="py-20 px-4 sm:px-6 lg:px-8 bg-black relative border-t border-zinc-900">
+    <section
+      id="skills"
+      aria-label="Technical Skills & Proficiencies"
+      className="py-20 px-4 sm:px-6 lg:px-8 bg-black relative border-t border-zinc-900"
+    >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-bold mb-2">My Arsenal</p>
@@ -91,11 +95,18 @@ export default function Skills({ categories: passedCategories }: SkillsProps) {
           </p>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-12">
+        {/* Filter Tabs with Accessibility */}
+        <div
+          role="tablist"
+          aria-label="Skill category filters"
+          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-12"
+        >
           {tabOptions.map((tab) => (
             <button
               key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
+              aria-controls={`panel-${tab.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 ${
                 activeTab === tab
@@ -111,7 +122,13 @@ export default function Skills({ categories: passedCategories }: SkillsProps) {
         {/* Categories Grid */}
         <div className="space-y-12">
           {displayedCategories.map((group) => (
-            <div key={group.category} className="space-y-4">
+            <div
+              key={group.category}
+              id={`panel-${group.category.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+              role="region"
+              aria-label={`${group.category} Skills`}
+              className="space-y-4"
+            >
               <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
                 <div>
                   <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -125,23 +142,29 @@ export default function Skills({ categories: passedCategories }: SkillsProps) {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {group.skills?.map((skill) => (
-                  <div
+                  <article
                     key={skill.name}
+                    itemScope
+                    itemType="https://schema.org/DefinedTerm"
                     className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80 hover:border-white/40 hover:bg-zinc-900 hover:shadow-lg hover:shadow-white/5 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center text-center group cursor-pointer"
                   >
                     <div className="w-14 h-14 relative mb-3 flex items-center justify-center">
                       <Image
                         src={skill.icon || '/Skills/js.svg'}
-                        alt={`${skill.name} icon`}
+                        alt={`${skill.name} — Full Stack Software Development Technology`}
                         width={48}
                         height={48}
                         className="object-contain max-h-12 group-hover:scale-110 transition-transform duration-300"
+                        itemProp="image"
                       />
                     </div>
-                    <span className="text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors">
+                    <h4
+                      className="text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors"
+                      itemProp="name"
+                    >
                       {skill.name}
-                    </span>
-                  </div>
+                    </h4>
+                  </article>
                 ))}
               </div>
             </div>
