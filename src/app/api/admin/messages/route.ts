@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getContactsFromPostgres, deleteContactFromPostgres } from '@/lib/postgres';
 import { requireAdmin } from '@/lib/admin-auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const unauthorized = requireAdmin(request);
   if (unauthorized) return unauthorized;

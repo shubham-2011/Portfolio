@@ -201,7 +201,7 @@ export default function AdminPage() {
   const fetchMediaAssets = async () => {
     setIsLoadingMedia(true);
     try {
-      const res = await fetch('/api/admin/media');
+      const res = await fetch('/api/admin/media', { cache: 'no-store' });
       const data = await res.json();
       if (res.ok && data.assets) {
         setMediaAssets(data.assets);
@@ -271,7 +271,7 @@ export default function AdminPage() {
   const fetchAnalytics = async () => {
     setIsLoadingAnalytics(true);
     try {
-      const res = await fetch('/api/admin/analytics');
+      const res = await fetch('/api/admin/analytics', { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         setAnalyticsLogs(data.logs || []);
@@ -299,7 +299,7 @@ export default function AdminPage() {
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const response = await fetch('/api/admin/login');
+        const response = await fetch('/api/admin/login', { cache: 'no-store' });
         const session = await response.json();
         if (session.authenticated) {
           setIsAuthenticated(true);
@@ -331,6 +331,7 @@ export default function AdminPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setIsAuthenticated(true);
+        setPassword('');
         fetchMessages();
         fetchContent();
         fetchAnalytics();
@@ -353,7 +354,7 @@ export default function AdminPage() {
   const fetchMessages = async () => {
     setIsLoadingMessages(true);
     try {
-      const res = await fetch('/api/admin/messages');
+      const res = await fetch('/api/admin/messages', { cache: 'no-store' });
       const data = await res.json();
       if (res.ok && data.messages) {
         setMessages(data.messages);
@@ -367,7 +368,7 @@ export default function AdminPage() {
 
   const fetchContent = async () => {
     try {
-      const res = await fetch('/api/admin/content');
+      const res = await fetch('/api/admin/content', { cache: 'no-store' });
       const data = await res.json();
       const contentPayload = data.data || data.content;
       if (res.ok && contentPayload) {
@@ -786,7 +787,10 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('inbox')}
+            onClick={() => {
+              setActiveTab('inbox');
+              fetchMessages();
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'inbox'
                 ? 'bg-white text-black shadow-md shadow-white/10'

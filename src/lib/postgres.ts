@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const connectionString = process.env.POSTGRES_URL;
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
 // Global pool caching for Next.js serverless environments
 let pool: Pool | undefined = (global as any).postgresPool;
