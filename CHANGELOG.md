@@ -4,6 +4,32 @@ This document details all changes, enhancements, and architectural upgrades impl
 
 ---
 
+## 📅 Recent Troubleshooting & Deployment Log (Next.js 15 & Netlify)
+
+### 1. Issue: Netlify Build Failure with `@netlify/angular-runtime`
+* **Error**: `Plugin "@netlify/angular-runtime" failed: Could not locate your angular.json/nx.json at your project root...` (Exit code: 2).
+* **Root Cause**: Because the repository previously ran Angular 18, Netlify auto-attached the `@netlify/angular-runtime` integration in the Netlify dashboard. During `onPreBuild`, it searched for `angular.json` which no longer exists in Next.js 15.
+* **Resolution**: Removed `@netlify/angular-runtime` from the Netlify site integrations/plugins, set framework preset to Next.js.
+
+### 2. Issue: Netlify Publish Directory Mismatch & Runtime v5
+* **Error**: `Error: Your publish directory does not contain expected Next.js build output. Please check your build settings (publish: /opt/build/repo/dist/porfile/browser)`.
+* **Root Cause**: Netlify UI had cached the old publish directory `dist/porfile/browser` from the legacy Angular deployment.
+* **Resolution**:
+  * Explicitly configured `publish = ".next"` in `netlify.toml` to override the legacy UI path.
+  * Installed `@netlify/plugin-nextjs: ^5.15.13` in `devDependencies` for full Next.js 15 App Router support.
+  * Configured `NODE_VERSION = "22"` in `netlify.toml` environment to satisfy the runtime requirement.
+
+### 3. Issue: Local Webpack Chunk Desync (`Cannot find module './611.js'`)
+* **Error**: `Runtime Error: Cannot find module './611.js' at webpack-runtime.js` on `http://localhost:3000`.
+* **Root Cause**: Running `npm run build` concurrently while `npm run dev` was active caused chunk cache collision in `.next`.
+* **Resolution**: Stopped the dev server process, purged the local `.next` directory cache, and re-launched `npm run dev`. Verified clean hydration and 200 responses.
+
+### 4. Feature: Squarespace 3D Celestial Particle Spheres & Refined Avatars
+* Added continuous 3D rotating starfield particle spheres with mouse-follow parallax in both Hero and About sections.
+* Streamlined avatar imagery to compact circular capsules with floating status indicators and orbiting technology pills (`⚡ Spring Boot`, `⚛ React / Angular`, `PostgreSQL & Cloud`).
+
+---
+
 ## 📅 Summary of Work Completed
 
 1. **Codebase Analysis & Project Knowledge Setup**
