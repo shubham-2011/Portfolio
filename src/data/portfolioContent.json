@@ -1,0 +1,194 @@
+{
+  "hero": {
+    "status": "Available for Opportunities",
+    "name": "Shubham",
+    "title": "Full Stack Software Developer",
+    "description": "Computer Engineer specializing in full-stack architecture. I design and build high-performance, scalable applications using Java, Spring Boot, PostgreSQL, Angular, React & Cloud.",
+    "yearsExperience": "2+",
+    "technologiesCount": "10+",
+    "clientSatisfaction": "100%",
+    "profileImage": "/Skills/shubham3-rm.png",
+    "resumeUrl": "/CV.png"
+  },
+  "about": {
+    "title": "About Me",
+    "subtitle": "Full Stack Developer",
+    "subtitleHighlight": "& Data Driven Engineer",
+    "bio": "I am an enthusiastic and detail-oriented software developer with a strong foundation in programming, problem-solving, and DSA algorithms. Having graduated with a Bachelor's Degree in Computer Science and currently pursuing MSc in Computer Science at Indira University, Pune, I specialize in architecting scalable, resilient web applications.",
+    "phone": "+91 9322887529",
+    "email": "shubhammisra800@gmail.com",
+    "location": "Pune, Maharashtra, India",
+    "degree": "BSc & MSc Computer Science"
+  },
+  "skills": [
+    {
+      "category": "Frontend",
+      "description": "Building modern, fast, and accessible user interfaces",
+      "skills": [
+        { "name": "Angular", "icon": "/Skills/Angular.svg" },
+        { "name": "React JS", "icon": "/Skills/React.png" },
+        { "name": "JavaScript", "icon": "/Skills/js.svg" },
+        { "name": "HTML5", "icon": "/Skills/HTML.webp" },
+        { "name": "CSS3", "icon": "/Skills/css.svg" }
+      ]
+    },
+    {
+      "category": "Backend",
+      "description": "Designing resilient microservices and secure server architectures",
+      "skills": [
+        { "name": "Java", "icon": "/Skills/java.webp" },
+        { "name": "Spring Boot", "icon": "/Skills/springboot.png" },
+        { "name": "C / C++", "icon": "/Skills/C.png" },
+        { "name": "Python", "icon": "/Skills/python.svg" },
+        { "name": "ASP.NET", "icon": "/Skills/asp-net.svg" },
+        { "name": "PHP", "icon": "/Skills/php.svg" }
+      ]
+    },
+    {
+      "category": "Database",
+      "description": "Managing structured databases, schema design, and caching",
+      "skills": [
+        { "name": "PostgreSQL DB", "icon": "/Skills/pgadmin.png" },
+        { "name": "MySQL DB", "icon": "/Skills/mysql.png" },
+        { "name": "MongoDB", "icon": "/Skills/mongodb.png" },
+        { "name": "Oracle DB", "icon": "/Skills/oracle.png" }
+      ]
+    },
+    {
+      "category": "Cloud & Tools",
+      "description": "DevOps, infrastructure, operating systems and build tools",
+      "skills": [
+        { "name": "Linux", "icon": "/Skills/linux.svg" },
+        { "name": "AWS Cloud", "icon": "/Skills/aws.svg" },
+        { "name": "Android Studio", "icon": "/Skills/android-studio.svg" }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "1",
+      "title": "Movie Booking & Revenue Management System",
+      "description": "Developed a full-stack movie ticket booking and cinema management platform featuring an end-to-end booking workflow, business analytics, and dynamic seat management.",
+      "image": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=1200",
+      "tech": ["Angular 18", "ASP.NET Core", "C#", "PostgreSQL", "JWT", "RxJS", "EF Core"],
+      "links": {
+        "frontend": "https://github.com/Shubham200020/Movie-ticket-Frontend",
+        "backend": "https://github.com/Shubham200020/Movie-ticket-Backend"
+      },
+      "features": [
+        "End-to-end booking workflow with interactive seat reservation",
+        "Admin dashboard for managing movies, theaters, and showtimes",
+        "Business analytics module for revenue and ticket sales tracking",
+        "GPS-based theater discovery using Geolocation APIs",
+        "Role-Based Access Control (RBAC) with secure Guards"
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Product Management System",
+      "description": "Full-stack inventory and sales management application focused on helping shopkeepers manage products, track stock, and analyze financial performance.",
+      "image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200",
+      "tech": ["Spring Boot", "Java 17", "Angular 18", "PostgreSQL", "JWT", "Hibernate", "Spring Data JPA"],
+      "links": {
+        "frontend": "https://github.com/Shubham200020/product-management-system-frontend",
+        "backend": "https://github.com/Shubham200020/product-management-system-backend"
+      },
+      "features": [
+        "Inventory tracking with FIFO logic and real-time stock monitoring",
+        "Dynamic profit and revenue analysis dashboards",
+        "Secure JWT-based authentication with RBAC",
+        "Automated sales price calculation and discount management",
+        "Scalable RESTful API using modular layered architecture"
+      ]
+    },
+    {
+      "id": "3",
+      "title": "APK Elite Services (Freelance)",
+      "description": "Developed an SEO-friendly and responsive business website for a service-based company to improve online visibility and customer engagement.",
+      "image": "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?auto=format&fit=crop&q=80&w=1200",
+      "tech": ["Angular", "TypeScript", "HTML5", "CSS3", "SEO Optimization", "Responsive Design"],
+      "links": {
+        "live": "https://www.apkeliteservices.in/"
+      },
+      "features": [
+        "SEO-friendly structure with optimized metadata and semantic HTML",
+        "Mobile-first responsive design for all device types",
+        "Reusable component-based architecture for scalability",
+        "Performance-focused design with fast load times",
+        "Collaborative UI customization tailored to client requirements"
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Cloud-Native Microservices E-Commerce Gateway",
+      "description": "Distributed microservices architecture featuring asynchronous event streaming, distributed transaction coordination, and secure payment processing.",
+      "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1200",
+      "tech": ["Spring Boot", "Java", "PostgreSQL", "Kafka", "Docker", "Next.js", "Tailwind CSS"],
+      "links": {
+        "frontend": "https://github.com/Shubham200020",
+        "backend": "https://github.com/Shubham200020"
+      },
+      "features": [
+        "Decoupled microservice services communicating via Kafka event brokers",
+        "Centralized API Gateway with rate limiting and JWT verification",
+        "PostgreSQL connection pooling with resilient ACID transactions",
+        "Dockerized container ecosystem ready for Kubernetes deployment"
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Real-Time Collaborative Code & Chat Engine",
+      "description": "Low-latency collaborative workspace supporting live code editing, instant WebSocket messaging, syntax highlighting, and room-based video chat.",
+      "image": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=1200",
+      "tech": ["React 19", "Node.js", "WebSockets", "Redis", "MongoDB", "Tailwind CSS"],
+      "links": {
+        "frontend": "https://github.com/Shubham200020",
+        "backend": "https://github.com/Shubham200020"
+      },
+      "features": [
+        "Bidirectional WebSocket protocol for real-time document synchronization",
+        "In-memory Redis pub/sub for multi-node message broadcasting",
+        "Full syntax highlighting and auto-completion code editor",
+        "NoSQL persistence in MongoDB with TTL session cleanup"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "year": "2025 - Present",
+      "title": "MSc Computer Science",
+      "university": "Indira University",
+      "place": "Pune, Maharashtra",
+      "description": "Advancing core skills in enterprise software engineering, distributed systems, algorithms, and cloud computing."
+    },
+    {
+      "year": "2020 - 2023",
+      "title": "Bachelor's Degree in Computer Science",
+      "place": "Pune, Maharashtra",
+      "extra": "Score: 60%",
+      "description": "Solid foundation in computer science fundamentals, OOP, database design, operating systems, and web technologies."
+    },
+    {
+      "year": "2017 - 2020",
+      "title": "Senior Secondary (XII)",
+      "place": "PC College, Bihar",
+      "extra": "Score: 60%",
+      "description": "Focused on Mathematics and Science with foundational coursework in computational logic and analytical problem-solving."
+    },
+    {
+      "year": "2016 - 2017",
+      "title": "Higher Secondary (X)",
+      "place": "Saraswati Vidya Mandir, Bihar",
+      "extra": "CGPA: 7.0",
+      "description": "Completed foundational secondary education with consistent academic performance and discipline."
+    }
+  ],
+  "experience": [
+    {
+      "year": "Feb 2024 - Nov 2024",
+      "company": "SetTribe",
+      "role": "Full Stack Developer Intern",
+      "description": "Contributed to customer-facing features, developed and consumed REST APIs, engineered UI components, and collaborated actively in team agile sprints."
+    }
+  ]
+}

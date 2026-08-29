@@ -1,35 +1,31 @@
 # Project Knowledge
 
 ## Overview
-This is an Angular 18 portfolio project for Shubham, a Full Stack Software Developer specializing in Java, Angular, and Cloud technologies.
+This is a high-performance **Next.js 15 (App Router)** developer portfolio for Shubham, a Full Stack Software Developer specializing in Java, Spring Boot, PostgreSQL, Angular, React, and Cloud technologies.
 
 ## Tech Stack
-- **Framework:** Angular 18 (`@angular/core` ^18.0.0)
-- **Styling:** Bootstrap 5, Tailwind CSS, and Vanilla CSS
-- **Testing:** Jasmine and Karma
-- **Structure:** Standard Angular structure with modular components (about, projects, education, home, login, skills).
+- **Framework:** Next.js 15 (App Router, Static Site Generation)
+- **UI & Styling:** React 19, Tailwind CSS 3 (Monochrome White & Black aesthetic)
+- **Icons & Animation:** Lucide React, Framer Motion
+- **Database Engine:** PostgreSQL (Hosted on Neon Tech Cloud) & MongoDB (Mongoose)
+- **Database GUI Tool:** pgAdmin 4 / DBeaver / Neon Console (for viewing/editing PostgreSQL data)
 
-## Design System
-- **Color Palette:**
-  - Primary Background: #0a0e17 - #0d1420 (Deep blue-black gradient)
-  - Accent Color: #00d9ff (Vibrant cyan)
-  - Secondary: #0099cc (Deep cyan)
-  - Text: #ffffff, #c0d0e0 (High contrast whites and light blues)
-- **Theme:** Modern tech aesthetic, similar to Awwwards designs.
+## Design System: Monochrome White & Black (Luxury Tech)
+- **Background:** `#000000` (Pure Pitch Black) and `#09090b` (Deep Zinc)
+- **Surfaces/Cards:** `#121215` / `#18181b` with subtle white hairline borders (`rgba(255, 255, 255, 0.1)`)
+- **Primary Typography:** `#ffffff` (Pure White)
+- **Secondary Typography:** `#a1a1aa` (Zinc 400), `#d4d4d8` (Zinc 300)
+- **Buttons:** Solid white primary buttons with black text, hover inversion, and subtle white glow shadows
+- **Patterns:** Aceternity UI-style background grid (`bg-grid-white`) with radial vignette mask
 
-## SEO & Best Practices
-- Semantic HTML tags are extensively used.
-- Structured Data (JSON-LD) for a "Person" schema is present in `index.html`.
-- Open Graph and Twitter card meta tags are configured for `https://www.skm-tech.xyz/`.
+## Database Architecture: pgsql (PostgreSQL) vs. pgAdmin
+- **PostgreSQL (`pgsql`)**: The actual database server & relational storage engine.
+  - Table `portfolio_contacts`: Stores contact inquiries (`id`, `name`, `email`, `phone`, `subject`, `message`, `created_at`).
+- **pgAdmin**: The GUI administrative software used by the developer to connect to PostgreSQL, inspect tables, run SQL queries, and edit records manually.
 
 ## Contact Form & Email Integration
-- Contact form submissions are routed via FormSubmit (`https://formsubmit.co/ajax/shubhammisra800@gmail.com`).
-- Direct submissions deliver structured email tables to `shubhammisra800@gmail.com` with `_replyto` set to the visitor's email for 1-click reply.
-- Asynchronous backup is dispatched to the Railway database backend.
-
-## Important Rules for AI Assistants
-1. Keep the cyan/teal accent colors consistent across new components.
-2. Favor modern, responsive layouts using Tailwind CSS alongside Bootstrap.
-3. Keep the JSON-LD schema up to date when adding new skills or project URLs.
-4. Ensure all images maintain proper aspect ratios and utilize `loading="lazy"` attributes.
-5. In Angular 18 templates, escape literal `@` in email text as `&#64;` to avoid Angular control flow compiler errors.
+- Route Handler: `src/app/api/contact/route.ts`
+- When submitted:
+  1. Inserts into Neon PostgreSQL (`portfolio_contacts`).
+  2. Dispatches structured email notification to `shubhammisra800@gmail.com` via FormSubmit with 1-click reply.
+  3. Optionally syncs to MongoDB.

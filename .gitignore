@@ -37,6 +37,14 @@ yarn-error.log
 testem.log
 /typings
 
+# Next.js
+/.next/
+/out/
+
+# Environment Variables
+.env
+.env*.local
+
 # System files
 .DS_Store
 Thumbs.db
