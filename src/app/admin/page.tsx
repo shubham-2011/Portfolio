@@ -222,6 +222,7 @@ export default function AdminPage() {
   };
 
   const [isUploading, setIsUploading] = useState(false);
+  const [isMigratingImages, setIsMigratingImages] = useState(false);
   const handleUploadFile = async (
     file: File,
     folder: 'Skills' | 'uploads',
@@ -248,6 +249,22 @@ export default function AdminPage() {
       alert('Network error while uploading file.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleCloudinaryMigration = async () => {
+    if (!confirm('Upload every current skill icon, project image, and profile image to Cloudinary?')) return;
+    setIsMigratingImages(true);
+    try {
+      const res = await fetch('/api/admin/migrate-cloudinary', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Migration failed.');
+      setContent(data.content);
+      alert(`${data.migrated} images are now stored in Cloudinary.`);
+    } catch (err: any) {
+      alert(err.message || 'Could not migrate images to Cloudinary.');
+    } finally {
+      setIsMigratingImages(false);
     }
   };
 
@@ -1112,6 +1129,15 @@ export default function AdminPage() {
                   >
                     <Plus className="w-4 h-4" />
                     <span>Add New Category</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloudinaryMigration}
+                    disabled={isMigratingImages}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-zinc-700 text-white text-xs font-bold hover:bg-zinc-800 disabled:opacity-50 transition-all"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>{isMigratingImages ? 'Migrating Images...' : 'Move Existing Images to Cloudinary'}</span>
                   </button>
                 </div>
 

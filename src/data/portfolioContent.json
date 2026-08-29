@@ -112,6 +112,10 @@
         {
           "icon": "/Skills/android-studio.svg",
           "name": "Android Studio"
+        },
+        {
+          "icon": "/Skills/1788019449749_dkr.png",
+          "name": "Docker"
         }
       ],
       "category": "Cloud & Tools",
