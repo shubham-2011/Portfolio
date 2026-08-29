@@ -129,6 +129,8 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [mobileDirection, setMobileDirection] = useState(1);
+  const mobileScrollRef = useRef<HTMLDivElement | null>(null);
+  const [activeMobileIdx, setActiveMobileIdx] = useState(0);
 
   const goToProject = (newIdx: number) => {
     const targetIdx = (newIdx + projects.length) % projects.length;
@@ -204,6 +206,46 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
       setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
     }
   };
+
+  // Mobile horizontal snap reel scroll handler
+  const handleMobileScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget as HTMLDivElement;
+    if (!el) return;
+
+    const center = el.scrollLeft + el.clientWidth / 2;
+    const children = Array.from(el.children) as HTMLElement[];
+    let nearest = 0;
+    let nearestDist = Infinity;
+
+    children.forEach((child, idx) => {
+      const childCenter = child.offsetLeft + child.clientWidth / 2;
+      const dist = Math.abs(childCenter - center);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = idx;
+      }
+    });
+
+    setActiveMobileIdx(nearest);
+  };
+
+  const scrollToMobileProject = (idx: number) => {
+    const el = mobileScrollRef.current;
+    if (!el) return;
+    const child = el.children[idx] as HTMLElement | undefined;
+    if (!child) return;
+
+    const left = Math.max(0, child.offsetLeft - (el.clientWidth - child.clientWidth) / 2);
+    el.scrollTo({ left, behavior: 'smooth' });
+    setActiveMobileIdx(idx);
+  };
+
+  // Keep mobile reel in sync when desktop `currentIndex` changes
+  useEffect(() => {
+    if (mobileScrollRef.current) {
+      scrollToMobileProject(currentIndex);
+    }
+  }, [currentIndex]);
 
   // Exact 3D coordinates matching Squarespace with refined depth & opacity
   const getCardProps = (index: number) => {
