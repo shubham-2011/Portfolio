@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, PanInfo } from 'framer-motion';
 import { ExternalLink, Github, Sparkles } from 'lucide-react';
@@ -140,7 +140,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
   }, [isHovered, projects.length]);
 
   // Mousepad / Touchpad Scroll Handler (Two-finger swipe & wheel)
-  const lastWheelTime = React.useRef(0);
+  const lastWheelTime = useRef(0);
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     const now = Date.now();
     // 380ms cooldown to smoothly advance card-by-card on touchpad flick
@@ -149,16 +149,14 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
     // Detect horizontal touchpad swipe
     if (Math.abs(e.deltaX) > 18) {
       if (e.deltaX > 18) {
-        // Swiped left on trackpad -> Next project
         setCurrentIndex((prev) => (prev + 1) % projects.length);
         lastWheelTime.current = now;
       } else if (e.deltaX < -18) {
-        // Swiped right on trackpad -> Prev project
         setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
         lastWheelTime.current = now;
       }
     }
-    // Also detect vertical wheel scroll when over the carousel
+    // Detect vertical wheel scroll when over the carousel
     else if (Math.abs(e.deltaY) > 25) {
       if (e.deltaY > 25) {
         setCurrentIndex((prev) => (prev + 1) % projects.length);
@@ -200,7 +198,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
     if (diff > Math.floor(projects.length / 2)) diff -= projects.length;
 
     if (diff === 0) {
-      // Center Active Card: Flat, elevated, spotlight
+      // Center Active Card
       return {
         x: '0%',
         rotateY: 0,
@@ -210,7 +208,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         pointerEvents: 'auto' as const,
       };
     } else if (diff === 1 || diff === -(projects.length - 1)) {
-      // Right Card: Tilted inward at -24deg, seamlessly framing center card
+      // Right Card
       return {
         x: '62%',
         rotateY: -24,
@@ -220,7 +218,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         pointerEvents: 'auto' as const,
       };
     } else if (diff === -1 || diff === projects.length - 1) {
-      // Left Card: Tilted inward at +24deg, seamlessly framing center card
+      // Left Card
       return {
         x: '-62%',
         rotateY: 24,
@@ -247,7 +245,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
       id="projects"
       className="py-16 sm:py-24 bg-black relative border-t border-zinc-900 overflow-hidden"
     >
-      {/* Background Ambient Spotlight */}
+      {/* Background Ambient Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[950px] h-[500px] bg-white/[0.02] rounded-full blur-[180px] pointer-events-none" />
 
       {/* Header */}
@@ -261,18 +259,18 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
           Selected Work
         </h2>
         <p className="text-xs sm:text-sm text-zinc-400 mt-2">
-          Squarespace 3D curved cylinder &bull; Auto-sliding left &bull; Hover to pause
+          Squarespace 3D curved cylinder &bull; Auto-sliding &bull; Touchpad scroll enabled
         </p>
       </div>
 
       {/* ========================================================================= */}
-      {/* EXACT SQUARESPACE 3D STAGE (WIDESCREEN TABLET CANVASES WITH 3D OVERLAP)   */}
+      {/* 3D PERSPECTIVE STAGE WITH DOMINANT BIG IMAGE VISUAL SECTIONS              */}
       {/* ========================================================================= */}
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onWheel={handleWheel}
-        className="relative w-full max-w-7xl mx-auto h-[480px] sm:h-[530px] lg:h-[560px] flex items-center justify-center select-none overflow-visible px-4"
+        className="relative w-full max-w-7xl mx-auto h-[500px] sm:h-[560px] lg:h-[590px] flex items-center justify-center select-none overflow-visible px-4"
         style={{ perspective: '1600px' }}
       >
         {projects.map((project, idx) => {
@@ -300,25 +298,22 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
               onClick={() => {
                 if (!isCenter) setCurrentIndex(idx);
               }}
-              className="absolute w-[88vw] sm:w-[620px] lg:w-[740px] h-[450px] sm:h-[500px] lg:h-[530px] rounded-[32px] overflow-hidden border border-white/20 bg-[#0c0c0e] shadow-[0_30px_90px_rgba(0,0,0,0.95)] flex flex-col justify-between p-6 sm:p-8 lg:p-9 cursor-grab active:cursor-grabbing hover:border-white/40"
+              className="absolute w-[88vw] sm:w-[620px] lg:w-[740px] h-[480px] sm:h-[530px] lg:h-[560px] rounded-[32px] overflow-hidden border border-white/20 bg-[#0c0c0e] shadow-[0_30px_90px_rgba(0,0,0,0.95)] flex flex-col justify-between p-5 sm:p-7 cursor-grab active:cursor-grabbing hover:border-white/40"
               style={{
                 pointerEvents: cardProps.pointerEvents,
                 transformStyle: 'preserve-3d',
               }}
             >
-              {/* 1. Top Navigation Bar (Identical to Squarespace Template Nav) */}
-              <div className="flex items-center justify-between text-xs text-zinc-300 pb-4 border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                  </div>
+              {/* 1. Card Top Bar */}
+              <div className="flex items-center justify-between text-xs text-zinc-300 pb-3 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                   <span className="font-mono text-[11px] uppercase tracking-widest text-zinc-300 font-semibold">
-                    {project.title} STUDIO
+                    PROJECT 0{idx + 1} &bull; {project.title}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-4 text-xs font-mono">
+                <div className="flex items-center gap-3 font-mono text-xs">
                   {project.links?.frontend && (
                     <a
                       href={project.links.frontend}
@@ -358,65 +353,52 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
                 </div>
               </div>
 
-              {/* 2. Huge Squarespace Editorial Typography (Identical to "LIO AGENCY" / "Balance") */}
-              <div className="py-4 sm:py-6 text-center space-y-2 shrink-0">
-                <h3 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase leading-none">
-                  {project.title}{' '}
-                  <span className="text-sm sm:text-xl lg:text-2xl font-light text-zinc-400 font-mono block sm:inline mt-1 sm:mt-0">
-                    {project.subtitle}
-                  </span>
-                </h3>
+              {/* 2. DOMINANT BIG IMAGE VISUAL SECTION (HERO CANVAS: 65% OF CARD HEIGHT) */}
+              <div className="relative flex-1 my-3 w-full rounded-2xl overflow-hidden border border-white/15 bg-black group/item">
+                <Image
+                  src={project.image}
+                  alt={project.title}
+                  fill
+                  priority={idx < 2}
+                  className="object-cover object-center group-hover/item:scale-105 transition-transform duration-700 brightness-95 group-hover/item:brightness-100"
+                  sizes="(max-width: 768px) 90vw, 740px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
-                <p className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.25em] text-zinc-400 pt-1">
-                  {project.tagline}
-                </p>
-              </div>
-
-              {/* 3. Bottom 3-Column Preview Gallery (Identical to 01, 02, 03 in Squarespace) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-white/10 shrink-0">
-                {/* Column 1: Main Project Screenshot Banner */}
-                <div className="relative h-24 sm:h-28 rounded-2xl overflow-hidden bg-black border border-white/10 group/item">
-                  <Image
-                    src={project.image}
-                    alt={project.title}
-                    fill
-                    priority={idx < 2}
-                    className="object-cover group-hover/item:scale-105 transition-transform duration-700 brightness-90 group-hover/item:brightness-100"
-                    sizes="320px"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
-                  <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[10px] font-mono text-white">
-                    <span className="font-bold">01 VIEW DEMO</span>
-                    <span className="text-zinc-400 text-[9px]">&rarr;</span>
-                  </div>
+                {/* Overlay Top Tech Pills */}
+                <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-1.5 z-10">
+                  {project.tech.map((t) => (
+                    <span
+                      key={t}
+                      className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-black/80 backdrop-blur-md text-white border border-white/20 font-mono"
+                    >
+                      {t}
+                    </span>
+                  ))}
                 </div>
 
-                {/* Column 2: Tech Stack Badges */}
-                <div className="p-3 sm:p-3.5 rounded-2xl bg-black/60 border border-white/10 flex flex-col justify-between space-y-2">
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
-                    02 TECH STACK
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {project.tech.map((t) => (
-                      <span
-                        key={t}
-                        className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10 text-white border border-white/15 font-mono"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Column 3: Highlights & Deliverable */}
-                <div className="p-3 sm:p-3.5 rounded-2xl bg-black/60 border border-white/10 flex flex-col justify-between space-y-2">
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
-                    03 ARCHITECTURE
-                  </span>
-                  <p className="text-[11px] text-zinc-300 line-clamp-2 leading-relaxed">
-                    {project.description}
+                {/* Overlay Big Bold Title inside the visual canvas */}
+                <div className="absolute bottom-4 left-4 right-4 z-10">
+                  <h3 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase leading-none drop-shadow-md">
+                    {project.title}{' '}
+                    <span className="text-xs sm:text-base lg:text-lg font-light text-zinc-300 font-mono block sm:inline mt-1 sm:mt-0">
+                      {project.subtitle}
+                    </span>
+                  </h3>
+                  <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-300 mt-1">
+                    {project.tagline}
                   </p>
                 </div>
+              </div>
+
+              {/* 3. Card Bottom Bar: Summary Description */}
+              <div className="pt-2 border-t border-white/10 shrink-0 flex items-center justify-between text-xs text-zinc-400">
+                <p className="line-clamp-1 max-w-[80%] text-zinc-300">
+                  {project.description}
+                </p>
+                <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-wider">
+                  0{idx + 1} / 0{projects.length}
+                </span>
               </div>
             </motion.div>
           );
@@ -439,7 +421,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         ))}
       </div>
 
-      {/* Bottom Caption (Matches "Join millions of entrepreneurs..." from Squarespace) */}
+      {/* Bottom Caption */}
       <div className="mt-4 text-center">
         <p className="text-xs font-mono text-zinc-500 uppercase tracking-widest">
           Explore production-ready full stack systems engineered by Shubham
