@@ -26,6 +26,29 @@ export function isPostgresConfigured() {
 
 let contactsTableInitialized = false;
 let contentTableInitialized = false;
+let adminTableInitialized = false;
+
+async function ensureAdminTable(clientPool: Pool) {
+  if (adminTableInitialized) return;
+
+  const query = `
+    CREATE TABLE IF NOT EXISTS admin_credentials (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(255) UNIQUE NOT NULL DEFAULT 'admin',
+      password_hash VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  try {
+    await clientPool.query(query);
+    adminTableInitialized = true;
+  } catch (err) {
+    console.error('Error ensuring admin_credentials table exists:', err);
+    throw err;
+  }
+}
 
 async function ensureContactsTable(clientPool: Pool) {
   if (contactsTableInitialized) return;
@@ -348,6 +371,56 @@ export async function clearVisitorsFromPostgres() {
 
   await pool.query(`TRUNCATE portfolio_visitors;`);
   return true;
+}
+
+// =============================================================================
+// 🔐 ADMIN CREDENTIALS DATABASE HELPERS
+// =============================================================================
+
+export async function getAdminPasswordHash() {
+  if (!pool) return null;
+  
+  try {
+    await ensureAdminTable(pool);
+    const result = await pool.query(
+      `SELECT password_hash FROM admin_credentials WHERE username = 'admin' LIMIT 1;`
+    );
+    return result.rows.length > 0 ? result.rows[0].password_hash : null;
+  } catch (err) {
+    console.error('Error fetching admin password hash:', err);
+    return null;
+  }
+}
+
+export async function setAdminPassword(plainPassword: string) {
+  if (!pool) {
+    throw new Error('PostgreSQL connection pool is not initialized.');
+  }
+
+  try {
+    await ensureAdminTable(pool);
+    
+    // Import crypto for simple hashing - for production use bcryptjs
+    const crypto = require('crypto');
+    const hashedPassword = crypto
+      .createHash('sha256')
+      .update(plainPassword)
+      .digest('hex');
+    
+    const result = await pool.query(
+      `INSERT INTO admin_credentials (username, password_hash, updated_at)
+       VALUES ('admin', $1, NOW())
+       ON CONFLICT (username)
+       DO UPDATE SET password_hash = EXCLUDED.password_hash, updated_at = NOW()
+       RETURNING id, username, updated_at;`,
+      [hashedPassword]
+    );
+    
+    return result.rows[0];
+  } catch (err) {
+    console.error('Error setting admin password:', err);
+    throw err;
+  }
 }
 
 export default pool;

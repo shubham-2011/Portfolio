@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { clearAdminSession, isAdmin, isAdminAuthConfigured, passwordsMatch, setAdminSession } from '@/lib/admin-auth';
+import { clearAdminSession, isAdmin, isAdminAuthConfigured, setAdminSession, verifyAdminPassword } from '@/lib/admin-auth';
 
 export async function GET(request: NextRequest) {
   const authenticated = isAdmin(request);
@@ -16,12 +16,13 @@ export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json();
     if (!isAdminAuthConfigured()) {
-      console.error('ADMIN_PASSWORD is not configured.');
+      console.error('Admin authentication is not configured.');
       return NextResponse.json({ success: false, error: 'Admin login is unavailable.' }, { status: 503 });
     }
-    const expectedPassword = process.env.ADMIN_PASSWORD as string;
 
-    if (!password || !passwordsMatch(password, expectedPassword)) {
+    const isPasswordCorrect = await verifyAdminPassword(password);
+    
+    if (!password || !isPasswordCorrect) {
       return NextResponse.json(
         { success: false, error: 'Invalid admin credentials' },
         { status: 401 }
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json(
       { success: false, error: 'Login error occurred' },
       { status: 500 }

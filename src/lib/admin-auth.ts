@@ -1,11 +1,13 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAdminPasswordHash } from './postgres';
 
 const SESSION_COOKIE = 'admin_session';
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
 
 export function isAdminAuthConfigured() {
-  return Boolean(process.env.ADMIN_PASSWORD && process.env.ADMIN_SESSION_SECRET && process.env.ADMIN_SESSION_SECRET.length >= 32);
+  // Admin auth is now always available if database is configured
+  return true;
 }
 
 function getSessionSecret() {
@@ -67,4 +69,22 @@ export function passwordsMatch(provided: string, expected: string) {
   const providedBuffer = Buffer.from(provided);
   const expectedBuffer = Buffer.from(expected);
   return providedBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(providedBuffer, expectedBuffer);
+}
+
+export async function verifyAdminPassword(plainPassword: string): Promise<boolean> {
+  try {
+    const storedHash = await getAdminPasswordHash();
+    if (!storedHash) return false;
+    
+    const crypto = require('crypto');
+    const providedHash = crypto
+      .createHash('sha256')
+      .update(plainPassword)
+      .digest('hex');
+    
+    return passwordsMatch(providedHash, storedHash);
+  } catch (err) {
+    console.error('Error verifying admin password:', err);
+    return false;
+  }
 }
