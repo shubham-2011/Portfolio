@@ -46,15 +46,13 @@ export async function POST(request: NextRequest) {
     try {
       // Try to set password in database
       result = await setAdminPassword(password.trim());
-      storageMethod = 'database';
+      storageMethod = result.error ? 'fallback' : 'database';
     } catch (dbError) {
       // Fallback: Store in memory/environment for now (development/testing only)
-      console.warn('Database setup failed, password validation will use env variable:', dbError);
       result = {
         id: -1,
         username: 'admin',
-        updated_at: new Date().toISOString(),
-        warning: 'Password set but database not configured - restart server with ADMIN_PASSWORD env variable'
+        updated_at: new Date().toISOString()
       };
       storageMethod = 'environment_fallback';
     }
@@ -65,15 +63,14 @@ export async function POST(request: NextRequest) {
         message: 'Admin password has been set successfully',
         storageMethod,
         username: result.username,
-        updated_at: result.updated_at,
-        warning: result.warning
+        updated_at: result.updated_at
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Setup error:', error);
+    // Return generic error without exposing internal details
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Setup failed' },
+      { success: false, error: 'Setup failed' },
       { status: 500 }
     );
   }

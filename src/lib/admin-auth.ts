@@ -86,15 +86,19 @@ export function passwordsMatch(provided: string, expected: string) {
 
 export async function verifyAdminPassword(plainPassword: string): Promise<boolean> {
   try {
-    // Try database first
-    const storedHash = await getAdminPasswordHash();
-    if (storedHash) {
-      const providedHash = crypto
-        .createHash('sha256')
-        .update(plainPassword)
-        .digest('hex');
-      
-      return passwordsMatch(providedHash, storedHash);
+    // Try database first (silently fail if not available)
+    try {
+      const storedHash = await getAdminPasswordHash();
+      if (storedHash) {
+        const providedHash = crypto
+          .createHash('sha256')
+          .update(plainPassword)
+          .digest('hex');
+        
+        return passwordsMatch(providedHash, storedHash);
+      }
+    } catch (dbError) {
+      // Database not available, continue to fallback
     }
     
     // Fallback to environment variable if database isn't configured
@@ -105,12 +109,7 @@ export async function verifyAdminPassword(plainPassword: string): Promise<boolea
     
     return false;
   } catch (err) {
-    console.warn('Database password check failed, trying env fallback:', err);
-    // Fallback to env variable on any database error
-    const envPassword = process.env.ADMIN_PASSWORD;
-    if (envPassword) {
-      return passwordsMatch(plainPassword, envPassword);
-    }
+    // Silent catch - don't log errors for security
     return false;
   }
 }

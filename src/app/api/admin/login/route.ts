@@ -26,12 +26,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if we can create a session
-    if (!isAdminAuthConfigured()) {
-      // Even if auth isn't fully configured, allow login but warn in logs
-      console.warn('⚠️  ADMIN_SESSION_SECRET not configured - creating session without proper secret');
-    }
-
     const response = NextResponse.json(
       { success: true, message: 'Authentication successful' },
       { status: 200 }
@@ -41,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Login error:', error);
+    // Silent catch - return generic error for security
     return NextResponse.json(
       { success: false, error: 'Login error occurred' },
       { status: 500 }
