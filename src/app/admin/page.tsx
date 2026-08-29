@@ -29,6 +29,7 @@ import {
   Wrench,
   User,
 } from 'lucide-react';
+import defaultContent from '@/data/portfolioContent.json';
 
 interface ContactMessage {
   id: number;
@@ -48,7 +49,7 @@ export default function AdminPage() {
 
   const [activeTab, setActiveTab] = useState<'content' | 'inbox' | 'database'>('content');
   const [contentSubTab, setContentSubTab] = useState<
-    'projects' | 'skills' | 'experience_education' | 'hero_about'
+    'skills' | 'experience_education' | 'projects' | 'hero_about'
   >('skills');
 
   // Messages state (PostgreSQL)
@@ -57,8 +58,8 @@ export default function AdminPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
 
-  // Content state (CMS)
-  const [content, setContent] = useState<any>(null);
+  // Content state (CMS with default content fallback)
+  const [content, setContent] = useState<any>(defaultContent);
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -114,8 +115,9 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/admin/content');
       const data = await res.json();
-      if (res.ok && data.content) {
-        setContent(data.content);
+      const contentPayload = data.data || data.content;
+      if (res.ok && contentPayload) {
+        setContent(contentPayload);
       }
     } catch (err) {
       console.error('Error fetching content:', err);
