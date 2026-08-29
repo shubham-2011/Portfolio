@@ -149,14 +149,65 @@ export default function Skills({ categories: passedCategories }: SkillsProps) {
                     className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80 hover:border-white/40 hover:bg-zinc-900 hover:shadow-lg hover:shadow-white/5 hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center text-center group cursor-pointer"
                   >
                     <div className="w-14 h-14 relative mb-3 flex items-center justify-center">
-                      <Image
-                        src={skill.icon || '/Skills/js.svg'}
-                        alt={`${skill.name} — Full Stack Software Development Technology`}
-                        width={48}
-                        height={48}
-                        className="object-contain max-h-12 group-hover:scale-110 transition-transform duration-300"
-                        itemProp="image"
-                      />
+                      {(() => {
+                        const raw = skill.icon || '/Skills/js.svg';
+                        const trimmed = String(raw).trim();
+
+                        // If the icon looks like an inline HTML snippet (e.g. devicon <i> tag),
+                        // render it as HTML inside a span so the icon font/markup can display.
+                        if (trimmed.startsWith('<')) {
+                          if (process.env.NODE_ENV !== 'production') {
+                            console.warn(`Skills: rendering HTML icon snippet for "${skill.name}"`);
+                          }
+                          return (
+                            <span
+                              className="text-2xl"
+                              aria-hidden
+                              dangerouslySetInnerHTML={{ __html: trimmed }}
+                            />
+                          );
+                        }
+
+                        // Otherwise treat as an image path/URL. Ensure there is no leading space/control chars.
+                        if (!trimmed) {
+                          if (process.env.NODE_ENV !== 'production') {
+                            console.warn(`Skills: empty icon for "${skill.name}", using fallback`);
+                          }
+                          return (
+                            <Image
+                              src={'/Skills/js.svg'}
+                              alt={`${skill.name} — icon fallback`}
+                              width={48}
+                              height={48}
+                              className="object-contain max-h-12"
+                            />
+                          );
+                        }
+
+                        // At this point we have a safe string (trimmed). Use Next/Image for known URL/path.
+                        try {
+                          return (
+                            <Image
+                              src={trimmed}
+                              alt={`${skill.name} — Full Stack Software Development Technology`}
+                              width={48}
+                              height={48}
+                              className="object-contain max-h-12 group-hover:scale-110 transition-transform duration-300"
+                              itemProp="image"
+                            />
+                          );
+                        } catch (e) {
+                          // If Next/Image throws at render time, fall back to text and log.
+                          if (process.env.NODE_ENV !== 'production') {
+                            console.error('Skills: image render error for', skill.name, e);
+                          }
+                          return (
+                            <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center text-xs text-zinc-400">
+                              ?
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
                     <h4
                       className="text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors"
