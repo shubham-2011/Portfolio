@@ -186,4 +186,161 @@ export async function savePortfolioContent(content: any) {
   return { success: true, savedToDb };
 }
 
+// =============================================================================
+// 📊 VISITOR ANALYTICS & FINGERPRINTING DATABASE HELPERS
+// =============================================================================
+let visitorsTableInitialized = false;
+
+async function ensureVisitorsTable(clientPool: Pool) {
+  if (visitorsTableInitialized) return;
+
+  const query = `
+    CREATE TABLE IF NOT EXISTS portfolio_visitors (
+      id SERIAL PRIMARY KEY,
+      fingerprint VARCHAR(255) NOT NULL,
+      ip_address VARCHAR(100),
+      city VARCHAR(100),
+      region VARCHAR(100),
+      country VARCHAR(100),
+      country_code VARCHAR(10),
+      browser VARCHAR(100),
+      os VARCHAR(100),
+      device_type VARCHAR(50),
+      screen_resolution VARCHAR(50),
+      language VARCHAR(50),
+      page_url VARCHAR(255),
+      referrer VARCHAR(255),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  try {
+    await clientPool.query(query);
+    visitorsTableInitialized = true;
+  } catch (err) {
+    console.error('Error ensuring portfolio_visitors table exists:', err);
+  }
+}
+
+export interface VisitorData {
+  fingerprint: string;
+  ip_address?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  country_code?: string;
+  browser?: string;
+  os?: string;
+  device_type?: string;
+  screen_resolution?: string;
+  language?: string;
+  page_url?: string;
+  referrer?: string;
+}
+
+export async function saveVisitorToPostgres(visitor: VisitorData) {
+  if (!pool) return null;
+  await ensureVisitorsTable(pool);
+
+  const insertQuery = `
+    INSERT INTO portfolio_visitors (
+      fingerprint, ip_address, city, region, country, country_code,
+      browser, os, device_type, screen_resolution, language, page_url, referrer
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    RETURNING id, created_at;
+  `;
+
+  const values = [
+    visitor.fingerprint || 'unknown',
+    visitor.ip_address || 'unknown',
+    visitor.city || 'Unknown',
+    visitor.region || 'Unknown',
+    visitor.country || 'Unknown',
+    visitor.country_code || 'XX',
+    visitor.browser || 'Unknown',
+    visitor.os || 'Unknown',
+    visitor.device_type || 'Desktop',
+    visitor.screen_resolution || 'Unknown',
+    visitor.language || 'en',
+    visitor.page_url || '/',
+    visitor.referrer || 'direct',
+  ];
+
+  const result = await pool.query(insertQuery, values);
+  return result.rows[0];
+}
+
+export async function getVisitorsFromPostgres(limit = 100) {
+  if (!pool) return [];
+  await ensureVisitorsTable(pool);
+
+  const query = `
+    SELECT id, fingerprint, ip_address, city, region, country, country_code,
+           browser, os, device_type, screen_resolution, language, page_url, referrer, created_at
+    FROM portfolio_visitors
+    ORDER BY created_at DESC
+    LIMIT $1;
+  `;
+
+  const result = await pool.query(query, [limit]);
+  return result.rows;
+}
+
+export async function getVisitorStatsFromPostgres() {
+  if (!pool) {
+    return {
+      totalVisits: 0,
+      uniqueVisitors: 0,
+      devices: [],
+      browsers: [],
+      countries: [],
+    };
+  }
+
+  await ensureVisitorsTable(pool);
+
+  const totalRes = await pool.query(`SELECT COUNT(*) FROM portfolio_visitors;`);
+  const uniqueRes = await pool.query(`SELECT COUNT(DISTINCT fingerprint) FROM portfolio_visitors;`);
+
+  const devicesRes = await pool.query(`
+    SELECT device_type, COUNT(*)::int as count
+    FROM portfolio_visitors
+    GROUP BY device_type
+    ORDER BY count DESC;
+  `);
+
+  const browsersRes = await pool.query(`
+    SELECT browser, COUNT(*)::int as count
+    FROM portfolio_visitors
+    GROUP BY browser
+    ORDER BY count DESC
+    LIMIT 10;
+  `);
+
+  const countriesRes = await pool.query(`
+    SELECT country, country_code, COUNT(*)::int as count
+    FROM portfolio_visitors
+    GROUP BY country, country_code
+    ORDER BY count DESC
+    LIMIT 10;
+  `);
+
+  return {
+    totalVisits: parseInt(totalRes.rows[0]?.count || '0', 10),
+    uniqueVisitors: parseInt(uniqueRes.rows[0]?.count || '0', 10),
+    devices: devicesRes.rows,
+    browsers: browsersRes.rows,
+    countries: countriesRes.rows,
+  };
+}
+
+export async function clearVisitorsFromPostgres() {
+  if (!pool) return false;
+  await ensureVisitorsTable(pool);
+
+  await pool.query(`TRUNCATE portfolio_visitors;`);
+  return true;
+}
+
 export default pool;

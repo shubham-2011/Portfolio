@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import VisitorTracker from '@/components/VisitorTracker';
 import './globals.css';
 
 const inter = Inter({
@@ -282,6 +283,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-black text-white selection:bg-white selection:text-black antialiased">
+        <VisitorTracker />
         {children}
       </body>
     </html>

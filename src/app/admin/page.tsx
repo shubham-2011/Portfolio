@@ -30,6 +30,13 @@ import {
   User,
   Upload,
   HelpCircle,
+  BarChart2,
+  Globe,
+  Smartphone,
+  Monitor,
+  Users,
+  Fingerprint,
+  Activity,
 } from 'lucide-react';
 import defaultContent from '@/data/portfolioContent.json';
 
@@ -70,7 +77,7 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'content' | 'inbox' | 'database'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'inbox' | 'analytics' | 'database'>('content');
   const [contentSubTab, setContentSubTab] = useState<
     'skills' | 'experience_education' | 'projects' | 'hero_about'
   >('skills');
@@ -81,14 +88,54 @@ export default function AdminPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
 
+  // Analytics & Fingerprinting state
+  const [analyticsLogs, setAnalyticsLogs] = useState<any[]>([]);
+  const [analyticsStats, setAnalyticsStats] = useState<any>({
+    totalVisits: 0,
+    uniqueVisitors: 0,
+    devices: [],
+    browsers: [],
+    countries: [],
+  });
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+
   // Content state (CMS with default content fallback)
   const [content, setContent] = useState<any>(defaultContent);
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const fetchAnalytics = async () => {
+    setIsLoadingAnalytics(true);
+    try {
+      const res = await fetch('/api/admin/analytics');
+      const data = await res.json();
+      if (data.success) {
+        setAnalyticsLogs(data.logs || []);
+        setAnalyticsStats(data.stats || {});
+      }
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
+  const clearAnalytics = async () => {
+    if (!window.confirm('Are you sure you want to clear all visitor analytics logs?')) return;
+    try {
+      const res = await fetch('/api/admin/analytics', { method: 'DELETE' });
+      if (res.ok) {
+        fetchAnalytics();
+      }
+    } catch (err) {
+      console.error('Error clearing analytics:', err);
+    }
+  };
+
   useEffect(() => {
     fetchMessages();
     fetchContent();
+    fetchAnalytics();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -108,6 +155,7 @@ export default function AdminPage() {
         setIsAuthenticated(true);
         fetchMessages();
         fetchContent();
+        fetchAnalytics();
       } else {
         setLoginError(data.error || 'Invalid password.');
       }
@@ -535,6 +583,28 @@ export default function AdminPage() {
           </button>
 
           <button
+            onClick={() => {
+              setActiveTab('analytics');
+              fetchAnalytics();
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === 'analytics'
+                ? 'bg-white text-black shadow-md shadow-white/10'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+            }`}
+          >
+            <BarChart2 className="w-4 h-4 text-emerald-400" />
+            <span>Visitor Analytics & Fingerprints</span>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                activeTab === 'analytics' ? 'bg-black text-white' : 'bg-zinc-800 text-zinc-300'
+              }`}
+            >
+              {analyticsStats.totalVisits || 0}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('database')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'database'
@@ -693,6 +763,236 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 📊 TAB 1.5: VISITOR ANALYTICS & FINGERPRINTS                              */}
+        {/* ========================================================================= */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800 backdrop-blur-md">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-emerald-400" />
+                  <span>Real-Time Visitor Telemetry & Fingerprinting</span>
+                </h2>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Track website visitors, hardware device signatures, browsers, and geographic regions.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={fetchAnalytics}
+                  disabled={isLoadingAnalytics}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition-all border border-zinc-700"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingAnalytics ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  onClick={clearAnalytics}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-800 text-red-300 text-xs font-semibold transition-all"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Clear Logs</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl">
+                <div className="flex items-center justify-between text-zinc-400 mb-2">
+                  <span className="text-xs font-medium uppercase tracking-wider">Total Page Views</span>
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                </div>
+                <p className="text-3xl font-extrabold text-white">{analyticsStats.totalVisits || 0}</p>
+                <p className="text-[11px] text-zinc-500 mt-1">Total page requests logged</p>
+              </div>
+
+              <div className="bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl">
+                <div className="flex items-center justify-between text-zinc-400 mb-2">
+                  <span className="text-xs font-medium uppercase tracking-wider">Unique Fingerprints</span>
+                  <Fingerprint className="w-4 h-4 text-cyan-400" />
+                </div>
+                <p className="text-3xl font-extrabold text-white">{analyticsStats.uniqueVisitors || 0}</p>
+                <p className="text-[11px] text-zinc-500 mt-1">Distinct device signatures</p>
+              </div>
+
+              <div className="bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl">
+                <div className="flex items-center justify-between text-zinc-400 mb-2">
+                  <span className="text-xs font-medium uppercase tracking-wider">Top Device Type</span>
+                  <Smartphone className="w-4 h-4 text-amber-400" />
+                </div>
+                <p className="text-2xl font-extrabold text-white truncate">
+                  {analyticsStats.devices && analyticsStats.devices[0]
+                    ? `${analyticsStats.devices[0].device_type}`
+                    : 'Desktop'}
+                </p>
+                <p className="text-[11px] text-zinc-500 mt-1">Primary audience hardware</p>
+              </div>
+
+              <div className="bg-zinc-900/80 border border-zinc-800 p-5 rounded-2xl">
+                <div className="flex items-center justify-between text-zinc-400 mb-2">
+                  <span className="text-xs font-medium uppercase tracking-wider">Top Region</span>
+                  <Globe className="w-4 h-4 text-purple-400" />
+                </div>
+                <p className="text-2xl font-extrabold text-white truncate">
+                  {analyticsStats.countries && analyticsStats.countries[0]
+                    ? analyticsStats.countries[0].country
+                    : 'Unknown'}
+                </p>
+                <p className="text-[11px] text-zinc-500 mt-1">Primary geographic location</p>
+              </div>
+            </div>
+
+            {/* Breakdown Grids */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Devices Breakdown */}
+              <div className="bg-zinc-900/70 border border-zinc-800 p-5 rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Monitor className="w-4 h-4 text-cyan-400" />
+                  <span>Device Hardware Types</span>
+                </h3>
+                <div className="space-y-3">
+                  {analyticsStats.devices && analyticsStats.devices.length > 0 ? (
+                    analyticsStats.devices.map((item: any, idx: number) => {
+                      const pct = Math.round((item.count / (analyticsStats.totalVisits || 1)) * 100);
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-xs font-semibold">
+                            <span className="text-zinc-200">{item.device_type}</span>
+                            <span className="text-zinc-400">{item.count} ({pct}%)</span>
+                          </div>
+                          <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-zinc-500">No device data yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Browsers Breakdown */}
+              <div className="bg-zinc-900/70 border border-zinc-800 p-5 rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-emerald-400" />
+                  <span>Browsers & Engines</span>
+                </h3>
+                <div className="space-y-3">
+                  {analyticsStats.browsers && analyticsStats.browsers.length > 0 ? (
+                    analyticsStats.browsers.map((item: any, idx: number) => {
+                      const pct = Math.round((item.count / (analyticsStats.totalVisits || 1)) * 100);
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-xs font-semibold">
+                            <span className="text-zinc-200">{item.browser}</span>
+                            <span className="text-zinc-400">{item.count} ({pct}%)</span>
+                          </div>
+                          <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-zinc-500">No browser data yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Geographic Regions */}
+              <div className="bg-zinc-900/70 border border-zinc-800 p-5 rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Users className="w-4 h-4 text-purple-400" />
+                  <span>Geographic Distribution</span>
+                </h3>
+                <div className="space-y-3">
+                  {analyticsStats.countries && analyticsStats.countries.length > 0 ? (
+                    analyticsStats.countries.map((item: any, idx: number) => {
+                      const pct = Math.round((item.count / (analyticsStats.totalVisits || 1)) * 100);
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-xs font-semibold">
+                            <span className="text-zinc-200">{item.country} ({item.country_code})</span>
+                            <span className="text-zinc-400">{item.count} ({pct}%)</span>
+                          </div>
+                          <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-purple-400 rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-zinc-500">No location data yet</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Visitor Telemetry Table */}
+            <div className="bg-zinc-900/70 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
+              <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Fingerprint className="w-4 h-4 text-white" />
+                  <span>Recent Visitor Access Logs (100 Most Recent)</span>
+                </h3>
+                <span className="text-xs font-mono text-zinc-400">{analyticsLogs.length} Records</span>
+              </div>
+
+              {analyticsLogs.length === 0 ? (
+                <div className="p-8 text-center text-zinc-500 text-sm">
+                  No visitors recorded yet. Visit the portfolio website to see real-time fingerprint logs.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-zinc-950 text-zinc-400 uppercase tracking-wider font-mono text-[10px] border-b border-zinc-800">
+                      <tr>
+                        <th className="py-3 px-4">Time</th>
+                        <th className="py-3 px-4">Fingerprint Hash</th>
+                        <th className="py-3 px-4">IP Address</th>
+                        <th className="py-3 px-4">Location</th>
+                        <th className="py-3 px-4">Device & OS</th>
+                        <th className="py-3 px-4">Browser</th>
+                        <th className="py-3 px-4">Screen</th>
+                        <th className="py-3 px-4">Referrer</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/80">
+                      {analyticsLogs.map((log: any) => (
+                        <tr key={log.id} className="hover:bg-zinc-800/40 transition-colors">
+                          <td className="py-3 px-4 font-mono text-zinc-400 whitespace-nowrap">
+                            {new Date(log.created_at).toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-cyan-400 font-semibold">
+                            <span title={log.fingerprint} className="px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/50">
+                              {log.fingerprint}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono text-zinc-300">{log.ip_address}</td>
+                          <td className="py-3 px-4 font-medium text-white whitespace-nowrap">
+                            {log.city !== 'Unknown' ? `${log.city}, ${log.country}` : log.country}
+                          </td>
+                          <td className="py-3 px-4 text-zinc-300 whitespace-nowrap">
+                            <span className="font-semibold text-white">{log.device_type}</span> ({log.os})
+                          </td>
+                          <td className="py-3 px-4 text-zinc-300 whitespace-nowrap">{log.browser}</td>
+                          <td className="py-3 px-4 font-mono text-zinc-400">{log.screen_resolution}</td>
+                          <td className="py-3 px-4 text-zinc-400 truncate max-w-[150px]" title={log.referrer}>
+                            {log.referrer}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
