@@ -139,6 +139,50 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
     return () => clearInterval(timer);
   }, [isHovered, projects.length]);
 
+  // Mousepad / Touchpad Scroll Handler (Two-finger swipe & wheel)
+  const lastWheelTime = React.useRef(0);
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const now = Date.now();
+    // 380ms cooldown to smoothly advance card-by-card on touchpad flick
+    if (now - lastWheelTime.current < 380) return;
+
+    // Detect horizontal touchpad swipe
+    if (Math.abs(e.deltaX) > 18) {
+      if (e.deltaX > 18) {
+        // Swiped left on trackpad -> Next project
+        setCurrentIndex((prev) => (prev + 1) % projects.length);
+        lastWheelTime.current = now;
+      } else if (e.deltaX < -18) {
+        // Swiped right on trackpad -> Prev project
+        setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+        lastWheelTime.current = now;
+      }
+    }
+    // Also detect vertical wheel scroll when over the carousel
+    else if (Math.abs(e.deltaY) > 25) {
+      if (e.deltaY > 25) {
+        setCurrentIndex((prev) => (prev + 1) % projects.length);
+        lastWheelTime.current = now;
+      } else if (e.deltaY < -25) {
+        setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+        lastWheelTime.current = now;
+      }
+    }
+  };
+
+  // Keyboard navigation (ArrowLeft, ArrowRight)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        setCurrentIndex((prev) => (prev + 1) % projects.length);
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [projects.length]);
+
   // Swipe gesture support
   const handleDragEnd = (_: any, info: PanInfo) => {
     const swipeThreshold = 40;
@@ -227,6 +271,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onWheel={handleWheel}
         className="relative w-full max-w-7xl mx-auto h-[480px] sm:h-[530px] lg:h-[560px] flex items-center justify-center select-none overflow-visible px-4"
         style={{ perspective: '1600px' }}
       >
