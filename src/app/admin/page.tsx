@@ -93,6 +93,9 @@ export default function AdminPage() {
     'skills' | 'experience_education' | 'projects' | 'hero_about'
   >('skills');
 
+  // Database Connection Status
+  const [dbStatus, setDbStatus] = useState<{ connected: boolean; database?: string; error?: string; source?: string } | null>(null);
+
   // Messages state (PostgreSQL)
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -296,6 +299,18 @@ export default function AdminPage() {
     }
   };
 
+  const fetchDbStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/status', { cache: 'no-store' });
+      const data = await res.json();
+      if (res.ok && data.dbStatus) {
+        setDbStatus(data.dbStatus);
+      }
+    } catch (err) {
+      console.error('Error checking DB status:', err);
+    }
+  };
+
   useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -303,6 +318,7 @@ export default function AdminPage() {
         const session = await response.json();
         if (session.authenticated) {
           setIsAuthenticated(true);
+          fetchDbStatus();
           fetchMessages();
           fetchContent();
           fetchAnalytics();
@@ -332,6 +348,7 @@ export default function AdminPage() {
       if (res.ok && data.success) {
         setIsAuthenticated(true);
         setPassword('');
+        fetchDbStatus();
         fetchMessages();
         fetchContent();
         fetchAnalytics();
@@ -721,13 +738,23 @@ export default function AdminPage() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <h1 className="text-lg font-bold flex items-center gap-2">
+            <h1 className="text-lg font-bold flex flex-wrap items-center gap-2">
               <span>Admin Management Portal</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono">
-                PostgreSQL Connected
-              </span>
+              {dbStatus?.connected ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>PostgreSQL Connected ({dbStatus.database || 'neondb'})</span>
+                </span>
+              ) : (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  <span>{dbStatus ? `DB Error: ${dbStatus.error}` : 'Checking Database...'}</span>
+                </span>
+              )}
             </h1>
-            <p className="text-xs text-zinc-400">Database: neondb | Neon Tech Cloud</p>
+            <p className="text-xs text-zinc-400">
+              Database: {dbStatus?.database || 'neondb'} | Neon Tech Cloud ({dbStatus?.source || 'Auto'})
+            </p>
           </div>
         </div>
 

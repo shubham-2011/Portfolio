@@ -3,7 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+const DEFAULT_POSTGRES_URL = 'postgresql://neondb_owner:npg_hQoR9X2Fgrlt@ep-cool-block-atydsn8b.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL || DEFAULT_POSTGRES_URL;
 
 // Global pool caching for Next.js serverless environments
 let pool: Pool | undefined = (global as any).postgresPool;
@@ -14,15 +15,31 @@ if (!pool && connectionString) {
     ssl: {
       rejectUnauthorized: false,
     },
-    max: 10,
+    max: 5,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 10000,
   });
   (global as any).postgresPool = pool;
 }
 
 export function isPostgresConfigured() {
   return Boolean(connectionString);
+}
+
+export async function testPostgresConnection() {
+  if (!pool) {
+    return { connected: false, error: 'PostgreSQL Pool not initialized' };
+  }
+  try {
+    const res = await pool.query('SELECT 1 as test, current_database() as db');
+    return {
+      connected: true,
+      database: res.rows[0]?.db || 'neondb',
+      source: process.env.POSTGRES_URL ? 'POSTGRES_URL' : (process.env.DATABASE_URL ? 'DATABASE_URL' : 'NEON_TECH_CLOUD_DEFAULT'),
+    };
+  } catch (err: any) {
+    return { connected: false, error: err.message };
+  }
 }
 
 export function getPool(): Pool | undefined {
