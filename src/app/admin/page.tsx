@@ -1249,20 +1249,53 @@ export default function AdminPage() {
                             <div className="flex items-start justify-between gap-3">
                               {/* Icon Preview */}
                               <div className="relative w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center p-1.5 shrink-0 overflow-hidden shadow-inner">
-                                {skill.icon ? (
-                                  <Image
-                                    src={skill.icon}
-                                    alt={skill.name}
-                                    width={28}
-                                    height={28}
-                                    className="object-contain"
-                                    onError={(e: any) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                ) : (
-                                  <Code2 className="w-5 h-5 text-zinc-400" />
-                                )}
+                                {(() => {
+                                  const raw = skill.icon || '/Skills/js.svg';
+                                  const trimmed = String(raw).trim();
+
+                                  if (trimmed.startsWith('<')) {
+                                    if (process.env.NODE_ENV !== 'production') {
+                                      console.warn(`Admin: rendering HTML icon snippet for "${skill.name}"`);
+                                    }
+                                    return (
+                                      <span
+                                        className="text-sm"
+                                        aria-hidden
+                                        dangerouslySetInnerHTML={{ __html: trimmed }}
+                                      />
+                                    );
+                                  }
+
+                                  if (!trimmed) {
+                                    if (process.env.NODE_ENV !== 'production') {
+                                      console.warn(`Admin: empty icon for "${skill.name}", using fallback`);
+                                    }
+                                    return <Code2 className="w-5 h-5 text-zinc-400" />;
+                                  }
+
+                                  try {
+                                    return (
+                                      <Image
+                                        src={trimmed}
+                                        alt={skill.name}
+                                        width={28}
+                                        height={28}
+                                        className="object-contain"
+                                        onError={(e: any) => {
+                                          e.currentTarget.style.display = 'none';
+                                          if (process.env.NODE_ENV !== 'production') {
+                                            console.error('Admin: Image preview failed for', skill.name, trimmed);
+                                          }
+                                        }}
+                                      />
+                                    );
+                                  } catch (err) {
+                                    if (process.env.NODE_ENV !== 'production') {
+                                      console.error('Admin: Image render error for', skill.name, err);
+                                    }
+                                    return <Code2 className="w-5 h-5 text-zinc-400" />;
+                                  }
+                                })()}
                               </div>
 
                               {/* Skill Name Input */}
@@ -1280,7 +1313,7 @@ export default function AdminPage() {
                                   type="text"
                                   value={skill.icon || ''}
                                   onChange={(e) =>
-                                    handleUpdateSkill(catIdx, sIdx, 'icon', e.target.value)
+                                    handleUpdateSkill(catIdx, sIdx, 'icon', e.target.value.trim())
                                   }
                                   placeholder="/Skills/Angular.svg or https://..."
                                   className="w-full bg-black/60 px-2 py-1 rounded border border-zinc-800 text-[10px] font-mono text-zinc-300 focus:outline-none focus:border-white truncate"
