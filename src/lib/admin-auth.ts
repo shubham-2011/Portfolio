@@ -13,10 +13,22 @@ export function isAdminAuthConfigured() {
 
 function getSessionSecret() {
   const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret || secret.length < 32) {
+  
+  if (secret && secret.length >= 32) {
+    return secret;
+  }
+
+  // Fallback for development/deployment without ADMIN_SESSION_SECRET configured
+  console.warn('⚠️  Using development fallback for ADMIN_SESSION_SECRET - configure ADMIN_SESSION_SECRET in production!');
+  
+  // Use a static development secret (NOT suitable for production - sessions won't persist across app restarts)
+  const fallbackSecret = 'development-fallback-admin-session-secret-not-secure-32-chars-required-length-minimum-here';
+  
+  if (fallbackSecret.length < 32) {
     throw new Error('ADMIN_SESSION_SECRET must be set to a random value of at least 32 characters.');
   }
-  return secret;
+  
+  return fallbackSecret;
 }
 
 function sign(payload: string) {

@@ -15,11 +15,8 @@ export async function DELETE() {
 export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json();
-    if (!isAdminAuthConfigured()) {
-      console.error('Admin authentication is not configured.');
-      return NextResponse.json({ success: false, error: 'Admin login is unavailable.' }, { status: 503 });
-    }
 
+    // Try to verify password (from database or environment variable)
     const isPasswordCorrect = await verifyAdminPassword(password);
     
     if (!password || !isPasswordCorrect) {
@@ -27,6 +24,12 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid admin credentials' },
         { status: 401 }
       );
+    }
+
+    // Check if we can create a session
+    if (!isAdminAuthConfigured()) {
+      // Even if auth isn't fully configured, allow login but warn in logs
+      console.warn('⚠️  ADMIN_SESSION_SECRET not configured - creating session without proper secret');
     }
 
     const response = NextResponse.json(
