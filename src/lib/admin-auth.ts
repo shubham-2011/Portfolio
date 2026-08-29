@@ -6,8 +6,9 @@ const SESSION_COOKIE = 'admin_session';
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
 
 export function isAdminAuthConfigured() {
-  // Admin auth is now always available if database is configured
-  return true;
+  // Allow if we have ADMIN_SESSION_SECRET (always required for sessions)
+  // Password can come from database OR environment variable
+  return Boolean(process.env.ADMIN_SESSION_SECRET && process.env.ADMIN_SESSION_SECRET.length >= 32);
 }
 
 function getSessionSecret() {
@@ -73,18 +74,31 @@ export function passwordsMatch(provided: string, expected: string) {
 
 export async function verifyAdminPassword(plainPassword: string): Promise<boolean> {
   try {
+    // Try database first
     const storedHash = await getAdminPasswordHash();
-    if (!storedHash) return false;
+    if (storedHash) {
+      const providedHash = crypto
+        .createHash('sha256')
+        .update(plainPassword)
+        .digest('hex');
+      
+      return passwordsMatch(providedHash, storedHash);
+    }
     
-    const crypto = require('crypto');
-    const providedHash = crypto
-      .createHash('sha256')
-      .update(plainPassword)
-      .digest('hex');
+    // Fallback to environment variable if database isn't configured
+    const envPassword = process.env.ADMIN_PASSWORD;
+    if (envPassword) {
+      return passwordsMatch(plainPassword, envPassword);
+    }
     
-    return passwordsMatch(providedHash, storedHash);
+    return false;
   } catch (err) {
-    console.error('Error verifying admin password:', err);
+    console.warn('Database password check failed, trying env fallback:', err);
+    // Fallback to env variable on any database error
+    const envPassword = process.env.ADMIN_PASSWORD;
+    if (envPassword) {
+      return passwordsMatch(plainPassword, envPassword);
+    }
     return false;
   }
 }

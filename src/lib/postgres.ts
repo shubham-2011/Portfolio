@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 const connectionString = process.env.POSTGRES_URL;
 
@@ -22,6 +23,10 @@ if (!pool && connectionString) {
 
 export function isPostgresConfigured() {
   return Boolean(connectionString);
+}
+
+export function getPool(): Pool | undefined {
+  return pool;
 }
 
 let contactsTableInitialized = false;
@@ -377,8 +382,17 @@ export async function clearVisitorsFromPostgres() {
 // 🔐 ADMIN CREDENTIALS DATABASE HELPERS
 // =============================================================================
 
+export async function ensureAdminTableExists() {
+  if (!pool) {
+    throw new Error('PostgreSQL pool not initialized - POSTGRES_URL not configured');
+  }
+  await ensureAdminTable(pool);
+}
+
 export async function getAdminPasswordHash() {
-  if (!pool) return null;
+  if (!pool) {
+    throw new Error('PostgreSQL pool not initialized - POSTGRES_URL not configured');
+  }
   
   try {
     await ensureAdminTable(pool);
@@ -388,20 +402,19 @@ export async function getAdminPasswordHash() {
     return result.rows.length > 0 ? result.rows[0].password_hash : null;
   } catch (err) {
     console.error('Error fetching admin password hash:', err);
-    return null;
+    throw err;
   }
 }
 
 export async function setAdminPassword(plainPassword: string) {
   if (!pool) {
-    throw new Error('PostgreSQL connection pool is not initialized.');
+    throw new Error('PostgreSQL pool not initialized - POSTGRES_URL not configured');
   }
 
   try {
     await ensureAdminTable(pool);
     
-    // Import crypto for simple hashing - for production use bcryptjs
-    const crypto = require('crypto');
+    // Hash the password using crypto
     const hashedPassword = crypto
       .createHash('sha256')
       .update(plainPassword)
