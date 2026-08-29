@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, Code2, Database, Award } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Phone, Mail, MapPin, Code2, Database, Award, Sparkles } from 'lucide-react';
 
 interface AboutProps {
   content?: {
@@ -30,17 +31,34 @@ export default function About({ content }: AboutProps) {
   const degree = content?.degree || 'BSc & MSc Computer Science';
 
   return (
-    <section id="about" className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950 relative border-t border-zinc-900">
+    <section id="about" className="py-20 px-4 sm:px-6 lg:px-8 bg-zinc-950 relative border-t border-zinc-900 overflow-hidden">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <p className="text-xs uppercase tracking-widest text-zinc-400 font-bold mb-2">Get To Know Me</p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">{title}</h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-3xl mx-auto mb-16"
+        >
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">
+            <Sparkles className="w-3 h-3 text-white" />
+            <span>Get To Know Me</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight animate-text-shimmer">
+            {title}
+          </h2>
           <div className="w-16 h-1 bg-white mx-auto mt-3 rounded-full" />
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Image Card */}
-          <div className="lg:col-span-5 flex justify-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="lg:col-span-5 flex justify-center"
+          >
             <div className="relative w-full max-w-sm aspect-[4/5] rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-b from-zinc-900 to-black shadow-2xl p-4 flex items-center justify-center group">
               <div className="relative w-full h-full rounded-xl overflow-hidden">
                 <Image
@@ -52,13 +70,20 @@ export default function About({ content }: AboutProps) {
                 />
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Text Content & Fast Facts */}
-          <div className="lg:col-span-7 space-y-6">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="lg:col-span-7 space-y-6"
+          >
             <div className="space-y-2">
               <h3 className="text-2xl sm:text-3xl font-bold text-white">
-                {subtitle} <span className="text-zinc-400 font-normal">{subtitleHighlight}</span>
+                {subtitle}{' '}
+                <span className="animate-text-shimmer font-semibold">{subtitleHighlight}</span>
               </h3>
               <p className="text-zinc-300 leading-relaxed">{bio}</p>
             </div>
@@ -128,7 +153,7 @@ export default function About({ content }: AboutProps) {
                 </p>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

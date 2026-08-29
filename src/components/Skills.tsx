@@ -82,7 +82,9 @@ export default function Skills({ categories: passedCategories }: SkillsProps) {
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <p className="text-xs uppercase tracking-widest text-zinc-400 font-bold mb-2">My Arsenal</p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">Technical Skills</h2>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight animate-text-shimmer">
+            Technical Skills
+          </h2>
           <div className="w-16 h-1 bg-white mx-auto mt-3 rounded-full" />
           <p className="text-zinc-400 text-sm sm:text-base mt-4">
             Hands-on expertise across full stack application development, server architectures, and relational databases.

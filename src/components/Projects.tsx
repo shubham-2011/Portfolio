@@ -146,7 +146,7 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
               <Sparkles className="w-3.5 h-3.5 text-white" />
               <span>Squarespace Style Showcase</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight animate-text-shimmer">
               Featured Work
             </h2>
             <p className="text-zinc-400 text-sm sm:text-base max-w-xl">
