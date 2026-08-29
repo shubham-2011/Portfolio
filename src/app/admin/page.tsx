@@ -133,9 +133,22 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    fetchMessages();
-    fetchContent();
-    fetchAnalytics();
+    const restoreSession = async () => {
+      try {
+        const response = await fetch('/api/admin/login');
+        const session = await response.json();
+        if (session.authenticated) {
+          setIsAuthenticated(true);
+          fetchMessages();
+          fetchContent();
+          fetchAnalytics();
+        }
+      } catch (err) {
+        console.log('Could not restore admin session.');
+      }
+    };
+
+    restoreSession();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -173,7 +186,6 @@ export default function AdminPage() {
       const data = await res.json();
       if (res.ok && data.messages) {
         setMessages(data.messages);
-        setIsAuthenticated(true);
       }
     } catch (err) {
       console.log('Session check notice');
