@@ -3,6 +3,14 @@ import crypto from 'crypto';
 const CLOUDINARY_UPLOAD_URL = (cloudName: string) =>
   `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
 
+export function isCloudinaryConfigured() {
+  return Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+  );
+}
+
 function configuration() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;

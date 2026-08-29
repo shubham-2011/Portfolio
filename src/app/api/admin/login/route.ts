@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { clearAdminSession, isAdmin, passwordsMatch, setAdminSession } from '@/lib/admin-auth';
+import { clearAdminSession, isAdmin, isAdminAuthConfigured, passwordsMatch, setAdminSession } from '@/lib/admin-auth';
 
 export async function GET(request: NextRequest) {
   const authenticated = isAdmin(request);
@@ -15,12 +15,11 @@ export async function DELETE() {
 export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json();
-    const expectedPassword = process.env.ADMIN_PASSWORD;
-
-    if (!expectedPassword) {
+    if (!isAdminAuthConfigured()) {
       console.error('ADMIN_PASSWORD is not configured.');
       return NextResponse.json({ success: false, error: 'Admin login is unavailable.' }, { status: 503 });
     }
+    const expectedPassword = process.env.ADMIN_PASSWORD as string;
 
     if (!password || !passwordsMatch(password, expectedPassword)) {
       return NextResponse.json(

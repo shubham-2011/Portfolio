@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadImageToCloudinary } from '@/lib/cloudinary';
+import { isCloudinaryConfigured, uploadImageToCloudinary } from '@/lib/cloudinary';
 import { requireAdmin } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
@@ -8,6 +8,9 @@ export async function POST(request: NextRequest) {
   try {
     const unauthorized = requireAdmin(request);
     if (unauthorized) return unauthorized;
+    if (!isCloudinaryConfigured()) {
+      return NextResponse.json({ success: false, error: 'Cloudinary image storage is not configured.' }, { status: 503 });
+    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;

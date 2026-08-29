@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 const SESSION_COOKIE = 'admin_session';
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
 
+export function isAdminAuthConfigured() {
+  return Boolean(process.env.ADMIN_PASSWORD && process.env.ADMIN_SESSION_SECRET && process.env.ADMIN_SESSION_SECRET.length >= 32);
+}
+
 function getSessionSecret() {
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!secret || secret.length < 32) {

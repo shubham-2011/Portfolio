@@ -4,14 +4,10 @@ import path from 'path';
 
 const connectionString = process.env.POSTGRES_URL;
 
-if (!connectionString) {
-  throw new Error('POSTGRES_URL must be configured.');
-}
-
 // Global pool caching for Next.js serverless environments
 let pool: Pool | undefined = (global as any).postgresPool;
 
-if (!pool) {
+if (!pool && connectionString) {
   pool = new Pool({
     connectionString,
     ssl: {
@@ -22,6 +18,10 @@ if (!pool) {
     connectionTimeoutMillis: 5000,
   });
   (global as any).postgresPool = pool;
+}
+
+export function isPostgresConfigured() {
+  return Boolean(connectionString);
 }
 
 let contactsTableInitialized = false;
@@ -177,7 +177,12 @@ export async function savePortfolioContent(content: any) {
     }
   }
 
-  // 2. Persist to local JSON file as backup
+  // 2. Persist to local JSON file only in development. Serverless filesystems are
+  // read-only/ephemeral, so they cannot be treated as a production data store.
+  if (process.env.NODE_ENV === 'production') {
+    return { success: savedToDb, savedToDb };
+  }
+
   try {
     const filePath = path.join(process.cwd(), 'src/data/portfolioContent.json');
     fs.writeFileSync(filePath, JSON.stringify(content, null, 2), 'utf-8');
@@ -185,7 +190,7 @@ export async function savePortfolioContent(content: any) {
     console.warn('Could not write to local JSON file (read-only filesystem in serverless):', err);
   }
 
-  return { success: true, savedToDb };
+  return { success: savedToDb, savedToDb };
 }
 
 // =============================================================================
