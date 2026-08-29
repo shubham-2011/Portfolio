@@ -38,6 +38,15 @@ body {
   background: #ffffff;
 }
 
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* White & Black Background Grid */
 .bg-grid-white {
   background-size: 44px 44px;
