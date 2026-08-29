@@ -438,4 +438,107 @@ export async function setAdminPassword(plainPassword: string) {
   }
 }
 
+// ============================================================================
+// PORTFOLIO MEDIA STORAGE (PERSISTENT CLOUD STORAGE FOR NETLIFY/PRODUCTION)
+// ============================================================================
+let mediaTableInitialized = false;
+
+async function ensureMediaTable(clientPool: Pool) {
+  if (mediaTableInitialized) return;
+
+  const query = `
+    CREATE TABLE IF NOT EXISTS portfolio_media (
+      id SERIAL PRIMARY KEY,
+      filename VARCHAR(255) UNIQUE NOT NULL,
+      folder VARCHAR(50) NOT NULL DEFAULT 'Skills',
+      mime_type VARCHAR(100) NOT NULL,
+      data_base64 TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  try {
+    await clientPool.query(query);
+    mediaTableInitialized = true;
+  } catch (err) {
+    console.error('Error ensuring portfolio_media table exists:', err);
+  }
+}
+
+export async function saveMediaToPostgres(
+  filename: string,
+  folder: string,
+  mimeType: string,
+  buffer: Buffer
+) {
+  if (!pool) return null;
+  try {
+    await ensureMediaTable(pool);
+    const dataBase64 = buffer.toString('base64');
+    const query = `
+      INSERT INTO portfolio_media (filename, folder, mime_type, data_base64, size_bytes)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (filename) DO UPDATE
+      SET folder = EXCLUDED.folder,
+          mime_type = EXCLUDED.mime_type,
+          data_base64 = EXCLUDED.data_base64,
+          size_bytes = EXCLUDED.size_bytes,
+          created_at = CURRENT_TIMESTAMP
+      RETURNING id, filename, folder, mime_type, size_bytes, created_at;
+    `;
+    const res = await pool.query(query, [filename, folder, mimeType, dataBase64, buffer.length]);
+    return res.rows[0];
+  } catch (err) {
+    console.error('Error saving media to PostgreSQL:', err);
+    return null;
+  }
+}
+
+export async function getMediaFromPostgres(filename: string) {
+  if (!pool) return null;
+  try {
+    await ensureMediaTable(pool);
+    const query = `SELECT mime_type, data_base64, size_bytes FROM portfolio_media WHERE filename = $1`;
+    const res = await pool.query(query, [filename]);
+    if (res.rows.length === 0) return null;
+    const row = res.rows[0];
+    return {
+      mimeType: row.mime_type,
+      buffer: Buffer.from(row.data_base64, 'base64'),
+      size: row.size_bytes,
+    };
+  } catch (err) {
+    console.error('Error getting media from PostgreSQL:', err);
+    return null;
+  }
+}
+
+export async function listMediaFromPostgres() {
+  if (!pool) return [];
+  try {
+    await ensureMediaTable(pool);
+    const query = `SELECT id, filename, folder, mime_type, size_bytes, created_at FROM portfolio_media ORDER BY created_at DESC`;
+    const res = await pool.query(query);
+    return res.rows;
+  } catch (err) {
+    console.error('Error listing media from PostgreSQL:', err);
+    return [];
+  }
+}
+
+export async function deleteMediaFromPostgres(filename: string) {
+  if (!pool) return false;
+  try {
+    await ensureMediaTable(pool);
+    const query = `DELETE FROM portfolio_media WHERE filename = $1`;
+    await pool.query(query, [filename]);
+    return true;
+  } catch (err) {
+    console.error('Error deleting media from PostgreSQL:', err);
+    return false;
+  }
+}
+
 export default pool;
+

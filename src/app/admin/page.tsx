@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -37,6 +37,17 @@ import {
   Users,
   Fingerprint,
   Activity,
+  Image as ImageIcon,
+  Copy,
+  Check,
+  FolderOpen,
+  UploadCloud,
+  Eye,
+  Tag,
+  X,
+  FileImage,
+  AlertTriangle,
+  FileText,
 } from 'lucide-react';
 import defaultContent from '@/data/portfolioContent.json';
 
@@ -77,7 +88,7 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'content' | 'inbox' | 'analytics' | 'database'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'inbox' | 'analytics' | 'database' | 'media'>('content');
   const [contentSubTab, setContentSubTab] = useState<
     'skills' | 'experience_education' | 'projects' | 'hero_about'
   >('skills');
@@ -103,6 +114,159 @@ export default function AdminPage() {
   const [content, setContent] = useState<any>(defaultContent);
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Media & Icons Manager state
+  interface MediaAsset {
+    id: string;
+    name: string;
+    folder: 'Skills' | 'uploads';
+    url: string;
+    size: number;
+    modifiedAt: string;
+    extension: string;
+  }
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
+  const [mediaFilter, setMediaFilter] = useState<'all' | 'Skills' | 'uploads' | 'unused'>('all');
+  const [mediaSearch, setMediaSearch] = useState('');
+  const [uploadTargetFolder, setUploadTargetFolder] = useState<'Skills' | 'uploads'>('Skills');
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [assignModalAsset, setAssignModalAsset] = useState<MediaAsset | null>(null);
+  const [assignTargetCategory, setAssignTargetCategory] = useState<number>(0);
+  const [assignTargetSkill, setAssignTargetSkill] = useState<number>(0);
+  const [libraryPickerTarget, setLibraryPickerTarget] = useState<
+    | { type: 'skill'; catIdx: number; sIdx: number }
+    | { type: 'project'; pIdx: number }
+    | { type: 'resume' }
+    | null
+  >(null);
+
+  // Compute all media files currently in use across Skills, Projects, Hero, and Resume
+  const usedMediaSet = useMemo(() => {
+    const set = new Set<string>();
+    if (!content) return set;
+
+    // 1. Skills
+    content.skills?.forEach((cat: any) => {
+      cat.skills?.forEach((s: any) => {
+        if (s.icon) {
+          const raw = String(s.icon).trim();
+          set.add(raw);
+          set.add(raw.replace(/^\/?(Skills|uploads|api\/media)\//, ''));
+        }
+      });
+    });
+
+    // 2. Projects
+    content.projects?.forEach((p: any) => {
+      if (p.image) {
+        const raw = String(p.image).trim();
+        set.add(raw);
+        set.add(raw.replace(/^\/?(Skills|uploads|api\/media)\//, ''));
+      }
+    });
+
+    // 3. Hero & Resume
+    if (content.hero?.resumeUrl) {
+      const raw = String(content.hero.resumeUrl).trim();
+      set.add(raw);
+      set.add(raw.replace(/^\/?(Skills|uploads|api\/media)\//, ''));
+    }
+    if (content.hero?.profileImage) {
+      const raw = String(content.hero.profileImage).trim();
+      set.add(raw);
+      set.add(raw.replace(/^\/?(Skills|uploads|api\/media)\//, ''));
+    }
+
+    // 4. About
+    if (content.about?.profileImage) {
+      const raw = String(content.about.profileImage).trim();
+      set.add(raw);
+      set.add(raw.replace(/^\/?(Skills|uploads|api\/media)\//, ''));
+    }
+
+    return set;
+  }, [content]);
+
+  const isAssetInUse = (asset: MediaAsset) => {
+    return (
+      usedMediaSet.has(asset.url) ||
+      usedMediaSet.has(asset.name) ||
+      usedMediaSet.has(`/${asset.folder}/${asset.name}`) ||
+      usedMediaSet.has(`/api/media/${asset.name}`)
+    );
+  };
+
+  const fetchMediaAssets = async () => {
+    setIsLoadingMedia(true);
+    try {
+      const res = await fetch('/api/admin/media');
+      const data = await res.json();
+      if (res.ok && data.assets) {
+        setMediaAssets(data.assets);
+      }
+    } catch (err) {
+      console.error('Error fetching media:', err);
+    } finally {
+      setIsLoadingMedia(false);
+    }
+  };
+
+  const handleBatchUpload = async (fileList: FileList | File[], folder: 'Skills' | 'uploads') => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('folder', folder);
+      files.forEach((f) => formData.append('files', f));
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await fetchMediaAssets();
+        alert(`Successfully uploaded ${data.count || files.length} asset(s)!`);
+      } else {
+        alert('Upload failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Network error while uploading.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteMedia = async (asset: MediaAsset) => {
+    if (!confirm(`Permanently delete "${asset.name}" from ${asset.folder}?`)) return;
+
+    try {
+      const res = await fetch('/api/admin/media', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: asset.name, folder: asset.folder }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMediaAssets((prev) => prev.filter((a) => a.id !== asset.id));
+      } else {
+        alert('Failed to delete asset: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Network error while deleting asset.');
+    }
+  };
+
+  const handleCopyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(null), 2000);
+  };
 
   const fetchAnalytics = async () => {
     setIsLoadingAnalytics(true);
@@ -142,6 +306,7 @@ export default function AdminPage() {
           fetchMessages();
           fetchContent();
           fetchAnalytics();
+          fetchMediaAssets();
         }
       } catch (err) {
         console.log('Could not restore admin session.');
@@ -169,6 +334,7 @@ export default function AdminPage() {
         fetchMessages();
         fetchContent();
         fetchAnalytics();
+        fetchMediaAssets();
       } else {
         setLoginError(data.error || 'Invalid password.');
       }
@@ -598,6 +764,28 @@ export default function AdminPage() {
           </button>
 
           <button
+            onClick={() => {
+              setActiveTab('media');
+              fetchMediaAssets();
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === 'media'
+                ? 'bg-white text-black shadow-md shadow-white/10'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4 text-cyan-400" />
+            <span>Media & Icons</span>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                activeTab === 'media' ? 'bg-black text-white' : 'bg-zinc-800 text-zinc-300'
+              }`}
+            >
+              {mediaAssets.length}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('inbox')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'inbox'
@@ -653,6 +841,390 @@ export default function AdminPage() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
+        {/* ========================================================================= */}
+        {/* 🖼️ TAB: MEDIA & ICONS ASSET MANAGER                                       */}
+        {/* ========================================================================= */}
+        {activeTab === 'media' && (
+          <div className="space-y-6">
+            {/* Top Toolbar & Summary Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800 backdrop-blur-md">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-cyan-400" />
+                  <span>Media & Icons Manager</span>
+                </h2>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Upload, organize, search, and assign skill icons and portfolio images with 1-click clipboard & CMS binding.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={fetchMediaAssets}
+                  disabled={isLoadingMedia}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition-all border border-zinc-700"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingMedia ? 'animate-spin' : ''}`} />
+                  <span>Refresh Library</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Total Assets</span>
+                  <p className="text-2xl font-black text-white mt-0.5">{mediaAssets.length}</p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-zinc-800/80 flex items-center justify-center text-cyan-400">
+                  <FolderOpen className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Skill Icons (/Skills)</span>
+                  <p className="text-2xl font-black text-white mt-0.5">
+                    {mediaAssets.filter((a) => a.folder === 'Skills').length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-cyan-950/40 border border-cyan-800/40 flex items-center justify-center text-cyan-400">
+                  <Code2 className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Project Images (/uploads)</span>
+                  <p className="text-2xl font-black text-white mt-0.5">
+                    {mediaAssets.filter((a) => a.folder === 'uploads').length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-purple-950/40 border border-purple-800/40 flex items-center justify-center text-purple-400">
+                  <Layers className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Drag and Drop Batch Uploader */}
+            <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <UploadCloud className="w-5 h-5 text-cyan-400" />
+                  <span className="text-sm font-bold text-white">Upload New Media & Icons</span>
+                </div>
+
+                {/* Target Folder Switcher */}
+                <div className="flex items-center gap-1.5 p-1 bg-black/60 rounded-xl border border-zinc-800 text-xs">
+                  <span className="text-zinc-500 text-[11px] px-2 font-mono">Upload to:</span>
+                  <button
+                    type="button"
+                    onClick={() => setUploadTargetFolder('Skills')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                      uploadTargetFolder === 'Skills'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    🎯 Skills Icons (/Skills)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadTargetFolder('uploads')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                      uploadTargetFolder === 'uploads'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    🖼️ Projects & General (/uploads)
+                  </button>
+                </div>
+              </div>
+
+              {/* Dropzone Area */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
+                }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleBatchUpload(e.dataTransfer.files, uploadTargetFolder);
+                  }
+                }}
+                className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all ${
+                  isDragOver
+                    ? 'border-cyan-400 bg-cyan-950/20 scale-[1.005]'
+                    : 'border-zinc-700/80 hover:border-zinc-600 bg-black/40'
+                }`}
+              >
+                <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 mb-3">
+                  <UploadCloud className="w-7 h-7 text-cyan-400" />
+                </div>
+                <h4 className="text-sm font-bold text-white mb-1">
+                  Drag and drop your SVG, PNG, or WEBP files here
+                </h4>
+                <p className="text-xs text-zinc-400 max-w-md mb-4">
+                  Files are saved directly to <span className="font-mono text-zinc-200">public/{uploadTargetFolder}/</span> and instantly available for your portfolio skills and projects.
+                </p>
+
+                <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs cursor-pointer shadow-lg shadow-white/10 active:scale-95 transition-all">
+                  <Plus className="w-4 h-4" />
+                  <span>{isUploading ? 'Uploading Files...' : 'Select Files from Computer'}</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,.svg"
+                    disabled={isUploading}
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleBatchUpload(e.target.files, uploadTargetFolder);
+                      }
+                    }}
+                  />
+                </label>
+                <span className="text-[10px] text-zinc-500 mt-2 font-mono">
+                  Supports multiple files simultaneously &bull; Max 15MB per file
+                </span>
+              </div>
+            </div>
+
+            {/* Media Gallery with Filter & Search */}
+            <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Search Box */}
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Search icons by name (e.g., docker, react)..."
+                    value={mediaSearch}
+                    onChange={(e) => setMediaSearch(e.target.value)}
+                    className="w-full pl-10 pr-8 py-2 rounded-xl bg-black/60 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white"
+                  />
+                  {mediaSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setMediaSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Pills */}
+                <div className="flex items-center gap-1.5 p-1 bg-black/60 rounded-xl border border-zinc-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setMediaFilter('all')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                      mediaFilter === 'all'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    All ({mediaAssets.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaFilter('Skills')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                      mediaFilter === 'Skills'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Skill Icons ({mediaAssets.filter((a) => a.folder === 'Skills').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaFilter('uploads')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition-all ${
+                      mediaFilter === 'uploads'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Uploads ({mediaAssets.filter((a) => a.folder === 'uploads').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaFilter('unused')}
+                    className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${
+                      mediaFilter === 'unused'
+                        ? 'bg-amber-500 text-black shadow-sm'
+                        : 'text-amber-400 hover:text-amber-300'
+                    }`}
+                    title="View photos and icons that are not being used anywhere"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Unused Files ({mediaAssets.filter((a) => !isAssetInUse(a)).length})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Unused filter helper banner */}
+              {mediaFilter === 'unused' && (
+                <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/60 text-xs text-amber-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      Showing files that are <strong>not referenced</strong> by any skill, project, or resume. You can safely delete them.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Asset Grid */}
+              {(() => {
+                const filtered = mediaAssets.filter((asset) => {
+                  let matchFolder = true;
+                  if (mediaFilter === 'unused') {
+                    matchFolder = !isAssetInUse(asset);
+                  } else if (mediaFilter !== 'all') {
+                    matchFolder = asset.folder === mediaFilter;
+                  }
+                  const matchSearch =
+                    !mediaSearch ||
+                    asset.name.toLowerCase().includes(mediaSearch.toLowerCase());
+                  return matchFolder && matchSearch;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="p-12 text-center rounded-xl bg-black/40 border border-zinc-800 space-y-2">
+                      <FileImage className="w-8 h-8 mx-auto text-zinc-600" />
+                      <p className="text-sm font-semibold text-white">No Media Assets Found</p>
+                      <p className="text-xs text-zinc-500">
+                        {mediaFilter === 'unused'
+                          ? 'Great news! All your photos and icons are actively in use.'
+                          : mediaSearch
+                          ? `No icons match "${mediaSearch}". Try a different search.`
+                          : 'Drag and drop your skills icons above to upload them!'}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+                    {filtered.map((asset) => {
+                      const inUse = isAssetInUse(asset);
+                      return (
+                        <div
+                          key={asset.id}
+                          className={`group rounded-xl bg-black/60 border ${
+                            inUse ? 'border-zinc-800 hover:border-zinc-600' : 'border-amber-900/60 hover:border-amber-500'
+                          } transition-all p-2.5 flex flex-col justify-between space-y-2 shadow-sm`}
+                        >
+                          {/* Checkerboard Image Preview Canvas */}
+                          <div className="relative w-full h-24 rounded-lg bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:8px_8px] bg-zinc-950 border border-zinc-800/80 flex items-center justify-center p-2 overflow-hidden">
+                            {/* In-Use / Unused Badge */}
+                            <span
+                              className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                inUse
+                                  ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-800/80'
+                                  : 'bg-amber-950/90 text-amber-300 border border-amber-800/80'
+                              }`}
+                            >
+                              {inUse ? 'In Use' : 'Unused'}
+                            </span>
+
+                            {asset.extension === 'pdf' ? (
+                              <div className="flex flex-col items-center justify-center gap-1">
+                                <FileText className="w-8 h-8 text-red-400" />
+                                <span className="text-[9px] font-mono text-zinc-400 uppercase">PDF Doc</span>
+                              </div>
+                            ) : (
+                              <Image
+                                src={asset.url}
+                                alt={asset.name}
+                                width={56}
+                                height={56}
+                                className="object-contain max-h-full max-w-full drop-shadow-md group-hover:scale-110 transition-transform duration-200"
+                                unoptimized
+                              />
+                            )}
+
+                            {/* Format Badge */}
+                            <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-black/80 text-zinc-300 border border-zinc-700">
+                              {asset.extension}
+                            </span>
+                          </div>
+
+                          {/* Info */}
+                          <div className="space-y-0.5">
+                            <p
+                              className="text-xs font-semibold text-white truncate"
+                              title={asset.name}
+                            >
+                              {asset.name}
+                            </p>
+                            <div className="flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                              <span>{(asset.size / 1024).toFixed(1)} KB</span>
+                              <span className="text-zinc-600">/{asset.folder}</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="pt-1.5 border-t border-zinc-850 flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyUrl(asset.url)}
+                              className="flex-1 py-1.5 px-2 rounded bg-zinc-850 hover:bg-white hover:text-black transition-colors text-[10px] font-semibold inline-flex items-center justify-center gap-1"
+                              title="Copy URL to Clipboard"
+                            >
+                              {copiedUrl === asset.url ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-400" />
+                                  <span className="text-emerald-400">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  <span>Copy URL</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* Assign Icon to a Skill Button */}
+                            <button
+                              type="button"
+                              onClick={() => setAssignModalAsset(asset)}
+                              className="p-1.5 rounded bg-zinc-850 hover:bg-cyan-500 hover:text-black transition-colors text-zinc-300"
+                              title="Assign this icon to a Skill in CMS"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                            </button>
+
+                            {/* Delete Asset */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMedia(asset)}
+                              className="p-1.5 rounded bg-zinc-850 hover:bg-red-500 hover:text-white transition-colors text-zinc-400"
+                              title="Delete file"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
         {/* ========================================================================= */}
         {/* TAB 1: INBOX MESSAGES                                                     */}
         {/* ========================================================================= */}
@@ -1323,7 +1895,8 @@ export default function AdminPage() {
                                         alt={skill.name}
                                         width={28}
                                         height={28}
-                                        className="object-contain"
+                                        unoptimized
+                                        className="object-contain max-h-full max-w-full"
                                         onError={(e: any) => {
                                           e.currentTarget.style.display = 'none';
                                           if (process.env.NODE_ENV !== 'production') {
@@ -1378,7 +1951,7 @@ export default function AdminPage() {
                               {/* 1. Direct Upload File Button */}
                               <label className="cursor-pointer flex-1 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-white hover:text-black transition-colors text-[11px] font-semibold inline-flex items-center justify-center gap-1.5">
                                 <Upload className="w-3 h-3" />
-                                <span>{isUploading ? 'Uploading...' : 'Upload File'}</span>
+                                <span>{isUploading ? '...' : 'Upload'}</span>
                                 <input
                                   type="file"
                                   accept="image/*,.svg"
@@ -1386,7 +1959,9 @@ export default function AdminPage() {
                                   className="hidden"
                                   onChange={(e) => {
                                     if (e.target.files?.[0]) {
-                                      handleUploadFile(e.target.files[0], 'Skills', (url) => {
+                                      const file = e.target.files[0];
+                                      e.target.value = '';
+                                      handleUploadFile(file, 'Skills', (url) => {
                                         handleUpdateSkill(catIdx, sIdx, 'icon', url);
                                       });
                                     }
@@ -1394,7 +1969,21 @@ export default function AdminPage() {
                                 />
                               </label>
 
-                              {/* 2. Preset Icons Picker Dropdown */}
+                              {/* 2. Media Library Picker Button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLibraryPickerTarget({ type: 'skill', catIdx, sIdx });
+                                  fetchMediaAssets();
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-white hover:text-black transition-colors text-[11px] font-semibold inline-flex items-center justify-center gap-1.5"
+                                title="Choose from Media Library"
+                              >
+                                <ImageIcon className="w-3 h-3 text-cyan-400" />
+                                <span>Library</span>
+                              </button>
+
+                              {/* 3. Preset Icons Picker Dropdown */}
                               <select
                                 onChange={(e) => {
                                   if (e.target.value) {
@@ -1765,25 +2354,38 @@ export default function AdminPage() {
                             <label className="block text-xs font-semibold text-zinc-400">
                               Screenshot / Banner Image URL
                             </label>
-                            <label className="cursor-pointer text-[11px] text-white hover:text-zinc-300 font-semibold inline-flex items-center gap-1">
-                              <Upload className="w-3 h-3" />
-                              <span>{isUploading ? 'Uploading...' : 'Upload Image'}</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                disabled={isUploading}
-                                className="hidden"
-                                onChange={(e) => {
-                                  if (e.target.files?.[0]) {
-                                    handleUploadFile(e.target.files[0], 'uploads', (url) => {
-                                      const updated = [...content.projects];
-                                      updated[idx].image = url;
-                                      setContent({ ...content, projects: updated });
-                                    });
-                                  }
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLibraryPickerTarget({ type: 'project', pIdx: idx });
+                                  fetchMediaAssets();
                                 }}
-                              />
-                            </label>
+                                className="text-[11px] text-cyan-400 hover:text-white font-semibold inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <ImageIcon className="w-3 h-3" />
+                                <span>Library</span>
+                              </button>
+                              <label className="cursor-pointer text-[11px] text-white hover:text-zinc-300 font-semibold inline-flex items-center gap-1">
+                                <Upload className="w-3 h-3" />
+                                <span>{isUploading ? '...' : 'Upload Image'}</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  disabled={isUploading}
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    if (e.target.files?.[0]) {
+                                      handleUploadFile(e.target.files[0], 'uploads', (url) => {
+                                        const updated = [...content.projects];
+                                        updated[idx].image = url;
+                                        setContent({ ...content, projects: updated });
+                                      });
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
                           </div>
                           <input
                             type="text"
@@ -1938,6 +2540,96 @@ export default function AdminPage() {
                       }
                       className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-white focus:outline-none focus:border-white"
                     />
+                  </div>
+                </div>
+
+                {/* Resume & CV Document Section */}
+                <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-cyan-400" />
+                      <h3 className="text-base font-bold text-white">Resume / CV Document</h3>
+                    </div>
+                    <span className="text-xs text-zinc-400">
+                      Connected to &quot;Resume PDF&quot; &amp; &quot;Download Resume&quot; buttons on homepage
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-xl bg-black/60 border border-zinc-800">
+                    <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center shrink-0">
+                      <FileText className="w-6 h-6 text-cyan-400" />
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <label className="block text-xs font-semibold text-zinc-300">
+                        Current Resume File / URL
+                      </label>
+                      <input
+                        type="text"
+                        value={content.hero?.resumeUrl || ''}
+                        onChange={(e) =>
+                          setContent({
+                            ...content,
+                            hero: { ...content.hero, resumeUrl: e.target.value },
+                          })
+                        }
+                        placeholder="/CV.png or /api/media/resume.pdf"
+                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-mono text-white focus:outline-none focus:border-white"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
+                      {/* Upload new Resume */}
+                      <label className="cursor-pointer px-3 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-colors inline-flex items-center gap-1.5 shadow">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isUploading ? 'Uploading...' : 'Upload PDF/Image'}</span>
+                        <input
+                          type="file"
+                          accept=".pdf,image/*,.doc,.docx"
+                          disabled={isUploading}
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              const file = e.target.files[0];
+                              e.target.value = '';
+                              handleUploadFile(file, 'uploads', (url) => {
+                                setContent({
+                                  ...content,
+                                  hero: { ...content.hero, resumeUrl: url },
+                                });
+                                alert('Resume uploaded successfully! Remember to click "Save All Changes" below to publish.');
+                              });
+                            }
+                          }}
+                        />
+                      </label>
+
+                      {/* Browse from Library */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLibraryPickerTarget({ type: 'resume' });
+                          fetchMediaAssets();
+                        }}
+                        className="px-3 py-2 rounded-xl bg-zinc-800 text-white hover:bg-zinc-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Library</span>
+                      </button>
+
+                      {/* View Resume in new tab */}
+                      {content.hero?.resumeUrl && (
+                        <a
+                          href={content.hero.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 rounded-xl border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Preview</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -2101,6 +2793,219 @@ export default function AdminPage() {
                   <span>Download pgAdmin 4</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODAL 1: ASSIGN ASSET TO SKILL                                           */}
+        {/* ========================================================================= */}
+        {assignModalAsset && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-2xl p-6 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-base font-bold text-white">Assign Icon to Portfolio Skill</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAssignModalAsset(null)}
+                  className="text-zinc-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Icon Preview */}
+              <div className="flex items-center gap-3 p-3 bg-black/60 rounded-xl border border-zinc-800">
+                <div className="w-12 h-12 rounded-lg bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:6px_6px] bg-zinc-950 border border-zinc-800 flex items-center justify-center p-2 shrink-0">
+                  <Image
+                    src={assignModalAsset.url}
+                    alt={assignModalAsset.name}
+                    width={36}
+                    height={36}
+                    className="object-contain max-h-full max-w-full"
+                    unoptimized
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-white truncate">{assignModalAsset.name}</p>
+                  <p className="text-[10px] text-zinc-500 font-mono truncate">{assignModalAsset.url}</p>
+                </div>
+              </div>
+
+              {/* Select Category */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-400">Target Skill Category</label>
+                <select
+                  value={assignTargetCategory}
+                  onChange={(e) => {
+                    setAssignTargetCategory(Number(e.target.value));
+                    setAssignTargetSkill(0);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl bg-black border border-zinc-700 text-xs text-white focus:outline-none focus:border-white"
+                >
+                  {content.skills?.map((cat: any, cIdx: number) => (
+                    <option key={cIdx} value={cIdx}>
+                      {cat.category} ({cat.skills?.length || 0} skills)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Select Skill */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-400">Target Skill</label>
+                <select
+                  value={assignTargetSkill}
+                  onChange={(e) => setAssignTargetSkill(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl bg-black border border-zinc-700 text-xs text-white focus:outline-none focus:border-white"
+                >
+                  {content.skills?.[assignTargetCategory]?.skills?.map((s: any, sIdx: number) => (
+                    <option key={sIdx} value={sIdx}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAssignModalAsset(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleUpdateSkill(assignTargetCategory, assignTargetSkill, 'icon', assignModalAsset.url);
+                    const targetSkillName =
+                      content.skills?.[assignTargetCategory]?.skills?.[assignTargetSkill]?.name || 'skill';
+                    alert(`Assigned "${assignModalAsset.name}" to ${targetSkillName}! Remember to click "Save All Changes" in the CMS.`);
+                    setAssignModalAsset(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-all shadow-md shadow-white/10"
+                >
+                  Apply Icon
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODAL 2: BROWSE MEDIA LIBRARY PICKER                                      */}
+        {/* ========================================================================= */}
+        {libraryPickerTarget && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-700 rounded-2xl p-6 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-base font-bold text-white">
+                    Select from Media Library{' '}
+                    <span className="text-xs font-normal text-zinc-400">
+                      ({libraryPickerTarget.type === 'skill'
+                        ? 'for Skill Icon'
+                        : libraryPickerTarget.type === 'project'
+                        ? 'for Project Screenshot'
+                        : 'for Resume / CV'})
+                    </span>
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLibraryPickerTarget(null)}
+                  className="text-zinc-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Quick Search */}
+              <div className="relative w-full">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Filter by name..."
+                  value={mediaSearch}
+                  onChange={(e) => setMediaSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-black/60 border border-zinc-800 text-xs text-white focus:outline-none focus:border-white"
+                />
+              </div>
+
+              {/* Icon Grid */}
+              <div className="flex-1 overflow-y-auto pr-1">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+                  {mediaAssets
+                    .filter((a) => {
+                      return (
+                        !mediaSearch ||
+                        a.name.toLowerCase().includes(mediaSearch.toLowerCase())
+                      );
+                    })
+                    .map((asset) => (
+                      <button
+                        type="button"
+                        key={asset.id}
+                        onClick={() => {
+                          if (libraryPickerTarget.type === 'skill') {
+                            handleUpdateSkill(
+                              libraryPickerTarget.catIdx,
+                              libraryPickerTarget.sIdx,
+                              'icon',
+                              asset.url
+                            );
+                          } else if (libraryPickerTarget.type === 'project') {
+                            const updated = [...content.projects];
+                            updated[libraryPickerTarget.pIdx].image = asset.url;
+                            setContent({ ...content, projects: updated });
+                          } else if (libraryPickerTarget.type === 'resume') {
+                            setContent({
+                              ...content,
+                              hero: { ...content.hero, resumeUrl: asset.url },
+                            });
+                          }
+                          setLibraryPickerTarget(null);
+                        }}
+                        className="group p-2 rounded-xl bg-black/50 border border-zinc-800 hover:border-cyan-400 hover:bg-zinc-800/60 transition-all text-center flex flex-col items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:4px_4px] bg-zinc-950 flex items-center justify-center p-1.5 overflow-hidden">
+                          {asset.extension === 'pdf' ? (
+                            <FileText className="w-5 h-5 text-red-400" />
+                          ) : (
+                            <Image
+                              src={asset.url}
+                              alt={asset.name}
+                              width={28}
+                              height={28}
+                              className="object-contain max-h-full max-w-full group-hover:scale-110 transition-transform"
+                              unoptimized
+                            />
+                          )}
+                        </div>
+                        <span className="text-[10px] font-mono text-zinc-300 truncate w-full group-hover:text-white">
+                          {asset.name}
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-500">
+                <span>Click any icon to attach it immediately.</span>
+                <button
+                  type="button"
+                  onClick={() => setLibraryPickerTarget(null)}
+                  className="px-4 py-1.5 rounded-xl bg-zinc-800 text-white font-semibold hover:bg-zinc-700"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

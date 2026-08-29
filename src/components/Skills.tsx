@@ -192,6 +192,7 @@ export default function Skills({ categories: passedCategories }: SkillsProps) {
                               alt={`${skill.name} — Full Stack Software Development Technology`}
                               width={48}
                               height={48}
+                              unoptimized
                               className="object-contain max-h-12 group-hover:scale-110 transition-transform duration-300"
                               itemProp="image"
                             />
