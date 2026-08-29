@@ -222,6 +222,7 @@ export default function Hero({ content }: HeroProps) {
               <span className="animate-text-shimmer font-black">
                 {name}
               </span>
+              <span className="sr-only"> — Full Stack Software Developer (Java, Spring Boot, React, Angular, PostgreSQL)</span>
             </h1>
 
             {/* Dynamic Typewriter Title with Animated Cursor */}

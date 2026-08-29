@@ -6,6 +6,7 @@ import Projects from '@/components/Projects';
 import Education from '@/components/Education';
 import ContactForm from '@/components/ContactForm';
 import Footer from '@/components/Footer';
+import PortfolioChatbot from '@/components/PortfolioChatbot';
 import { getPortfolioContent } from '@/lib/postgres';
 import defaultContent from '@/data/portfolioContent.json';
 
@@ -104,6 +105,7 @@ export default async function HomePage() {
       <Education education={content.education} experience={content.experience} />
       <ContactForm />
       <Footer />
+      <PortfolioChatbot content={content} />
     </main>
   );
 }
