@@ -39,8 +39,8 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=1200',
       tech: ['Angular 18', 'ASP.NET Core', 'C#', 'PostgreSQL'],
       links: {
-        frontend: 'https://github.com/Shubham200020/Movie-ticket-Frontend',
-        backend: 'https://github.com/Shubham200020/Movie-ticket-Backend',
+        frontend: 'https://github.com/shubham-2011/Movie-ticket-Frontend',
+        backend: 'https://github.com/shubham-2011/Movie-ticket-Backend',
       },
       features: [
         'Real-time seat reservation workflow',
@@ -58,8 +58,8 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200',
       tech: ['Spring Boot', 'Java 17', 'Angular 18', 'PostgreSQL'],
       links: {
-        frontend: 'https://github.com/Shubham200020/product-management-system-frontend',
-        backend: 'https://github.com/Shubham200020/product-management-system-backend',
+        frontend: 'https://github.com/shubham-2011/product-management-system-frontend',
+        backend: 'https://github.com/shubham-2011/product-management-system-backend',
       },
       features: [
         'FIFO inventory decrement logic & automated alerts',
@@ -95,8 +95,8 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1200',
       tech: ['Spring Boot', 'Java', 'PostgreSQL', 'Docker'],
       links: {
-        frontend: 'https://github.com/Shubham200020',
-        backend: 'https://github.com/Shubham200020',
+        frontend: 'https://github.com/shubham-2011',
+        backend: 'https://github.com/shubham-2011',
       },
       features: [
         'Decoupled microservice architecture with event streaming',
@@ -114,8 +114,8 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
         'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=1200',
       tech: ['React 19', 'Node.js', 'WebSockets', 'MongoDB'],
       links: {
-        frontend: 'https://github.com/Shubham200020',
-        backend: 'https://github.com/Shubham200020',
+        frontend: 'https://github.com/shubham-2011',
+        backend: 'https://github.com/shubham-2011',
       },
       features: [
         'Bidirectional WebSocket protocol for live document synchronization',

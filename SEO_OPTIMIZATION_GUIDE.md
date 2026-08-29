@@ -64,7 +64,7 @@ In `index.html` schema markup (lines 47-48):
 ```json
 "sameAs": [
   "https://linkedin.com/in/yourprofile",
-  "https://github.com/Shubham200020"
+  "https://github.com/shubham-2011"
 ]
 ```
 

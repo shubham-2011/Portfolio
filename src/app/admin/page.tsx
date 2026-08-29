@@ -299,8 +299,8 @@ export default function AdminPage() {
       tech: ['Angular 18', 'Java', 'Spring Boot', 'PostgreSQL'],
       links: {
         live: '',
-        frontend: 'https://github.com/Shubham200020',
-        backend: 'https://github.com/Shubham200020',
+        frontend: 'https://github.com/shubham-2011',
+        backend: 'https://github.com/shubham-2011',
       },
       features: [
         'Modular architecture with clean separation of concerns',
@@ -320,8 +320,8 @@ export default function AdminPage() {
         tech: ['Next.js 15', 'TypeScript', 'Tailwind CSS', 'PostgreSQL', 'Stripe'],
         links: {
           live: '',
-          frontend: 'https://github.com/Shubham200020',
-          backend: 'https://github.com/Shubham200020',
+          frontend: 'https://github.com/shubham-2011',
+          backend: 'https://github.com/shubham-2011',
         },
         features: [
           'Full checkout and order lifecycle management',
@@ -340,8 +340,8 @@ export default function AdminPage() {
         tech: ['Python', 'FastAPI', 'React', 'PostgreSQL', 'Chart.js'],
         links: {
           live: '',
-          frontend: 'https://github.com/Shubham200020',
-          backend: 'https://github.com/Shubham200020',
+          frontend: 'https://github.com/shubham-2011',
+          backend: 'https://github.com/shubham-2011',
         },
         features: [
           'Automated data ingestion with background worker pipelines',

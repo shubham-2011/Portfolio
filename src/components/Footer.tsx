@@ -12,7 +12,7 @@ export default function Footer() {
   const socialLinks = [
     {
       name: 'GitHub',
-      href: 'https://github.com/Shubham200020',
+      href: 'https://github.com/shubham-2011',
       icon: <Github className="w-5 h-5" />,
     },
     {

@@ -117,7 +117,7 @@ export default function RootLayout({
     telephone: '+91-9322887529',
     sameAs: [
       'https://www.linkedin.com/in/shubham-kumar-48b57023b/',
-      'https://github.com/Shubham200020',
+      'https://github.com/shubham-2011',
       'https://x.com/shubhammisra800',
       'https://www.instagram.com/skm.20.11',
     ],
