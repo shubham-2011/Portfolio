@@ -1,9 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getVisitorsFromPostgres, getVisitorStatsFromPostgres, clearVisitorsFromPostgres } from '@/lib/postgres';
+import { requireAdmin } from '@/lib/admin-auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
   try {
     const logs = await getVisitorsFromPostgres(100);
     const stats = await getVisitorStatsFromPostgres();
@@ -19,7 +22,9 @@ export async function GET() {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
   try {
     await clearVisitorsFromPostgres();
     return NextResponse.json({ success: true, message: 'Visitor logs cleared successfully.' });

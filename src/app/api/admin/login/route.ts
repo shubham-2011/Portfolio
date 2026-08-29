@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clearAdminSession, isAdmin, passwordsMatch, setAdminSession } from '@/lib/admin-auth';
 
 export async function GET(request: NextRequest) {
-  const authenticated = request.cookies.get('admin_session')?.value === 'authenticated_token';
+  const authenticated = isAdmin(request);
   return NextResponse.json({ success: true, authenticated });
+}
+
+export async function DELETE() {
+  const response = NextResponse.json({ success: true });
+  clearAdminSession(response);
+  return response;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json();
-    const expectedPassword = process.env.ADMIN_PASSWORD || 'Shubham@20';
+    const expectedPassword = process.env.ADMIN_PASSWORD;
 
-    if (!password || password !== expectedPassword) {
+    if (!expectedPassword) {
+      console.error('ADMIN_PASSWORD is not configured.');
+      return NextResponse.json({ success: false, error: 'Admin login is unavailable.' }, { status: 503 });
+    }
+
+    if (!password || !passwordsMatch(password, expectedPassword)) {
       return NextResponse.json(
         { success: false, error: 'Invalid admin credentials' },
         { status: 401 }
@@ -22,14 +34,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
 
-    // Set auth cookie
-    response.cookies.set('admin_session', 'authenticated_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
+    setAdminSession(response);
 
     return response;
   } catch (error) {

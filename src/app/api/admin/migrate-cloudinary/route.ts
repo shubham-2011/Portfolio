@@ -3,6 +3,7 @@ import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
 import { getPortfolioContent, savePortfolioContent } from '@/lib/postgres';
+import { requireAdmin } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 
@@ -39,9 +40,8 @@ async function migrateImage(source: string, folder: 'portfolio/skills' | 'portfo
 }
 
 export async function POST(request: NextRequest) {
-  if (request.cookies.get('admin_session')?.value !== 'authenticated_token') {
-    return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
-  }
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
 
   try {
     const content = await getPortfolioContent();

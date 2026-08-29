@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getContactsFromPostgres, deleteContactFromPostgres } from '@/lib/postgres';
+import { requireAdmin } from '@/lib/admin-auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
   try {
     const messages = await getContactsFromPostgres();
     return NextResponse.json({ success: true, messages }, { status: 200 });
@@ -15,6 +18,8 @@ export async function GET() {
 }
 
 export async function DELETE(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

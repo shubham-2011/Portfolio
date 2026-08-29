@@ -2,9 +2,11 @@ import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
 
-const connectionString =
-  process.env.POSTGRES_URL ||
-  'postgresql://neondb_owner:npg_hQoR9X2Fgrlt@ep-cool-block-atydsn8b.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const connectionString = process.env.POSTGRES_URL;
+
+if (!connectionString) {
+  throw new Error('POSTGRES_URL must be configured.');
+}
 
 // Global pool caching for Next.js serverless environments
 let pool: Pool | undefined = (global as any).postgresPool;

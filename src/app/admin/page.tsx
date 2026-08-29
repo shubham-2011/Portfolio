@@ -179,6 +179,11 @@ export default function AdminPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await fetch('/api/admin/login', { method: 'DELETE' });
+    setIsAuthenticated(false);
+  };
+
   const fetchMessages = async () => {
     setIsLoadingMessages(true);
     try {
@@ -569,7 +574,7 @@ export default function AdminPage() {
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
           <button
-            onClick={() => setIsAuthenticated(false)}
+            onClick={handleLogout}
             className="px-3.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
           >
             Lock Session

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
+import { requireAdmin } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    if (request.cookies.get('admin_session')?.value !== 'authenticated_token') {
-      return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
-    }
+    const unauthorized = requireAdmin(request);
+    if (unauthorized) return unauthorized;
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
