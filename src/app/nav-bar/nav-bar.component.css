@@ -40,13 +40,13 @@
 }
 
 .logo:hover {
-  color: #ff6b35;
-  text-shadow: 0 0 20px rgba(255, 107, 53, 0.6);
+  color: #00d9ff;
+  text-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
   transform: scale(1.05);
 }
 
 .logo-text {
-  color: #ff6b35;
+  color: #00d9ff;
   font-weight: 900;
 }
 
@@ -76,12 +76,16 @@
   left: 0;
   width: 0;
   height: 3px;
-  background: linear-gradient(90deg, #ff6b35, #ff8c00);
+  background: linear-gradient(90deg, #00d9ff, #0099cc);
   transition: width 0.3s ease;
 }
 
-.nav-link:hover {
-  color: #ff6b35;
+.nav-link:hover, .nav-link:focus-visible {
+  color: #00d9ff;
+  outline: none;
+}
+.nav-link:focus-visible::after {
+  width: 100%;
 }
 
 .nav-link:hover::after {
@@ -103,7 +107,7 @@
 .hamburger-line {
   width: 24px;
   height: 2.5px;
-  background: #ff6b35;
+  background: #00d9ff;
   border-radius: 2px;
   transition: all 0.3s ease;
   display: block;
@@ -155,11 +159,12 @@
   font-family: 'Poppins', sans-serif;
 }
 
-.mobile-nav-link:hover {
-  background: rgba(255, 107, 53, 0.1);
-  color: #ff6b35;
-  border-left-color: #ff6b35;
+.mobile-nav-link:hover, .mobile-nav-link:focus-visible {
+  background: rgba(0, 217, 255, 0.1);
+  color: #00d9ff;
+  border-left-color: #00d9ff;
   padding-left: 2.5rem;
+  outline: none;
 }
 
 /* Tablet Breakpoint (768px) */

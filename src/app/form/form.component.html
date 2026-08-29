@@ -51,12 +51,20 @@
                 </div>
             </div>
 
-            <button type="submit">{{submits}}</button>
+            <button type="submit" [disabled]="isSubmitting">
+                <i class="fa fa-spinner fa-spin" *ngIf="isSubmitting"></i>
+                {{submits}}
+            </button>
         </form>
 
-        <div class="alert" *ngIf="dsp">
+        <div class="alert alert-success" *ngIf="successMessage">
+            <button class="closebtn" type="button" (click)="closeSuccessAlert()" aria-label="Close alert">&times;</button>
+            <strong>Message Sent Successfully!</strong> Thank you, your message was sent directly to my email. I will respond to you shortly.
+        </div>
+
+        <div class="alert alert-danger" *ngIf="dsp">
             <button class="closebtn" type="button" (click)="closeAlert()" aria-label="Close alert">&times;</button>
-            <strong>Server issue</strong> There was a problem processing your request. Please send me an email.
+            <strong>Submission Notice:</strong> Unable to send message via form. Please email me directly at <a href="mailto:shubhammisra800@gmail.com" class="email-direct-link">shubhammisra800&#64;gmail.com</a>.
         </div>
     </div>
 </section>
