@@ -28,8 +28,31 @@ import {
   Cpu,
   Wrench,
   User,
+  Upload,
+  HelpCircle,
 } from 'lucide-react';
 import defaultContent from '@/data/portfolioContent.json';
+
+const PRESET_ICONS = [
+  { name: 'Angular', path: '/Skills/Angular.svg' },
+  { name: 'React', path: '/Skills/React.png' },
+  { name: 'JavaScript', path: '/Skills/js.svg' },
+  { name: 'HTML5', path: '/Skills/HTML.webp' },
+  { name: 'CSS3', path: '/Skills/css.svg' },
+  { name: 'Java', path: '/Skills/java.webp' },
+  { name: 'Spring Boot', path: '/Skills/springboot.png' },
+  { name: 'C / C++', path: '/Skills/C.png' },
+  { name: 'Python', path: '/Skills/python.svg' },
+  { name: 'PostgreSQL', path: '/Skills/pgadmin.png' },
+  { name: 'MongoDB', path: '/Skills/mongodb.png' },
+  { name: 'MySQL', path: '/Skills/mysql.png' },
+  { name: 'Oracle', path: '/Skills/oracle.png' },
+  { name: 'Linux', path: '/Skills/linux.svg' },
+  { name: 'AWS Cloud', path: '/Skills/aws.svg' },
+  { name: 'ASP.NET', path: '/Skills/asp-net.svg' },
+  { name: 'PHP', path: '/Skills/php.svg' },
+  { name: 'Android Studio', path: '/Skills/android-studio.svg' },
+];
 
 interface ContactMessage {
   id: number;
@@ -147,6 +170,36 @@ export default function AdminPage() {
       alert('Network error while saving content to PostgreSQL.');
     } finally {
       setIsSavingContent(false);
+    }
+  };
+
+  const [isUploading, setIsUploading] = useState(false);
+  const handleUploadFile = async (
+    file: File,
+    folder: 'Skills' | 'uploads',
+    onSuccess: (url: string) => void
+  ) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', folder);
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        onSuccess(data.url);
+      } else {
+        alert('Upload failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Network error while uploading file.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -739,6 +792,7 @@ export default function AdminPage() {
             {/* =================================================================== */}
             {contentSubTab === 'skills' && (
               <div className="space-y-8">
+                {/* Header & Quick Action */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-zinc-950 border border-zinc-800">
                   <div>
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -747,7 +801,7 @@ export default function AdminPage() {
                     </h3>
                     <p className="text-xs text-zinc-400 mt-1">
                       Manage skills categories (Frontend, Backend, Database, Cloud & Tools) and add
-                      individual skills with icons.
+                      individual skills with dynamic icon uploads.
                     </p>
                   </div>
 
@@ -759,6 +813,64 @@ export default function AdminPage() {
                     <Plus className="w-4 h-4" />
                     <span>Add New Category</span>
                   </button>
+                </div>
+
+                {/* HOW TO ADD ICONS & IMAGES DYNAMICALLY GUIDE */}
+                <div className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    <HelpCircle className="w-4 h-4 text-white" />
+                    <span>How to Add Images & Icons Dynamically:</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-zinc-300">
+                    <div className="p-3.5 rounded-xl bg-black border border-zinc-800 space-y-1.5">
+                      <div className="flex items-center gap-2 font-bold text-white">
+                        <Upload className="w-3.5 h-3.5 text-zinc-400" />
+                        <span>1. Upload from Computer</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Click the <span className="text-white font-semibold">Upload</span> button on any skill card. Choose any SVG, PNG, or WEBP file from your device. It will upload dynamically to the server and apply automatically!
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-black border border-zinc-800 space-y-1.5">
+                      <div className="flex items-center gap-2 font-bold text-white">
+                        <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
+                        <span>2. Choose Preset Icons</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Use the <span className="text-white font-semibold">Presets dropdown</span> on any card to select existing icons (Angular, React, Java, Spring Boot, PostgreSQL, MongoDB, Python, etc.) with 1 click.
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-black border border-zinc-800 space-y-1.5">
+                      <div className="flex items-center gap-2 font-bold text-white">
+                        <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+                        <span>3. Paste Online Icon URLs</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Copy free vector icons from{' '}
+                        <a
+                          href="https://devicon.dev"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-white underline font-semibold hover:text-zinc-300"
+                        >
+                          Devicon.dev ↗
+                        </a>{' '}
+                        or{' '}
+                        <a
+                          href="https://simpleicons.org"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-white underline font-semibold hover:text-zinc-300"
+                        >
+                          SimpleIcons ↗
+                        </a>{' '}
+                        and paste the URL directly into the field!
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Skill Categories List */}
@@ -832,27 +944,29 @@ export default function AdminPage() {
                         {cat.skills?.map((skill: any, sIdx: number) => (
                           <div
                             key={sIdx}
-                            className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between gap-3 group hover:border-zinc-700 transition-all"
+                            className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 flex flex-col justify-between gap-3 group hover:border-zinc-700 transition-all"
                           >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <div className="relative w-8 h-8 rounded-lg bg-black border border-white/10 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                            <div className="flex items-start justify-between gap-3">
+                              {/* Icon Preview */}
+                              <div className="relative w-10 h-10 rounded-xl bg-black border border-white/10 flex items-center justify-center p-1.5 shrink-0 overflow-hidden shadow-inner">
                                 {skill.icon ? (
                                   <Image
                                     src={skill.icon}
                                     alt={skill.name}
-                                    width={24}
-                                    height={24}
+                                    width={28}
+                                    height={28}
                                     className="object-contain"
                                     onError={(e: any) => {
                                       e.currentTarget.style.display = 'none';
                                     }}
                                   />
                                 ) : (
-                                  <Code2 className="w-4 h-4 text-zinc-400" />
+                                  <Code2 className="w-5 h-5 text-zinc-400" />
                                 )}
                               </div>
 
-                              <div className="flex-1 space-y-1 min-w-0">
+                              {/* Skill Name Input */}
+                              <div className="flex-1 min-w-0 space-y-1">
                                 <input
                                   type="text"
                                   value={skill.name || ''}
@@ -860,7 +974,7 @@ export default function AdminPage() {
                                     handleUpdateSkill(catIdx, sIdx, 'name', e.target.value)
                                   }
                                   placeholder="Skill Name"
-                                  className="w-full bg-transparent text-xs font-bold text-white focus:outline-none focus:border-b border-white"
+                                  className="w-full bg-transparent text-sm font-bold text-white focus:outline-none focus:border-b border-white"
                                 />
                                 <input
                                   type="text"
@@ -868,20 +982,62 @@ export default function AdminPage() {
                                   onChange={(e) =>
                                     handleUpdateSkill(catIdx, sIdx, 'icon', e.target.value)
                                   }
-                                  placeholder="/Skills/Angular.svg"
-                                  className="w-full bg-transparent text-[10px] font-mono text-zinc-400 focus:outline-none focus:border-b border-zinc-500 truncate"
+                                  placeholder="/Skills/Angular.svg or https://..."
+                                  className="w-full bg-black/60 px-2 py-1 rounded border border-zinc-800 text-[10px] font-mono text-zinc-300 focus:outline-none focus:border-white truncate"
                                 />
                               </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSkill(catIdx, sIdx)}
+                                className="p-1 rounded text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Remove Skill"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSkill(catIdx, sIdx)}
-                              className="p-1 rounded text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Remove Skill"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {/* Dynamic Upload and Presets Row */}
+                            <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/80">
+                              {/* 1. Direct Upload File Button */}
+                              <label className="cursor-pointer flex-1 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-white hover:text-black transition-colors text-[11px] font-semibold inline-flex items-center justify-center gap-1.5">
+                                <Upload className="w-3 h-3" />
+                                <span>{isUploading ? 'Uploading...' : 'Upload File'}</span>
+                                <input
+                                  type="file"
+                                  accept="image/*,.svg"
+                                  disabled={isUploading}
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    if (e.target.files?.[0]) {
+                                      handleUploadFile(e.target.files[0], 'Skills', (url) => {
+                                        handleUpdateSkill(catIdx, sIdx, 'icon', url);
+                                      });
+                                    }
+                                  }}
+                                />
+                              </label>
+
+                              {/* 2. Preset Icons Picker Dropdown */}
+                              <select
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleUpdateSkill(catIdx, sIdx, 'icon', e.target.value);
+                                  }
+                                }}
+                                defaultValue=""
+                                className="px-2 py-1.5 rounded-lg bg-black border border-zinc-700 text-zinc-300 text-[11px] focus:outline-none focus:border-white max-w-[120px]"
+                              >
+                                <option value="" disabled>
+                                  Presets ▾
+                                </option>
+                                {PRESET_ICONS.map((p) => (
+                                  <option key={p.name} value={p.path}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1229,9 +1385,30 @@ export default function AdminPage() {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-zinc-400 mb-1">
-                            Screenshot / Banner Image URL
-                          </label>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs font-semibold text-zinc-400">
+                              Screenshot / Banner Image URL
+                            </label>
+                            <label className="cursor-pointer text-[11px] text-white hover:text-zinc-300 font-semibold inline-flex items-center gap-1">
+                              <Upload className="w-3 h-3" />
+                              <span>{isUploading ? 'Uploading...' : 'Upload Image'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                disabled={isUploading}
+                                className="hidden"
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    handleUploadFile(e.target.files[0], 'uploads', (url) => {
+                                      const updated = [...content.projects];
+                                      updated[idx].image = url;
+                                      setContent({ ...content, projects: updated });
+                                    });
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
                           <input
                             type="text"
                             value={proj.image}
@@ -1240,6 +1417,7 @@ export default function AdminPage() {
                               updated[idx].image = e.target.value;
                               setContent({ ...content, projects: updated });
                             }}
+                            placeholder="https://... or /uploads/..."
                             className="w-full px-3.5 py-2 rounded-xl bg-black border border-zinc-800 text-xs font-mono text-white focus:outline-none focus:border-white"
                           />
                         </div>
