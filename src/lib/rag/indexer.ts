@@ -18,6 +18,7 @@ import {
   searchLocalVectorStore,
 } from './localVectorStore';
 import defaultContent from '@/data/portfolioContent.json';
+import customQaDataset from '../../../data/chatbot_qa_dataset.json';
 
 interface RawDocument {
   chunkId: string;
@@ -142,6 +143,19 @@ export async function collectSourceDocuments(): Promise<RawDocument[]> {
     content: `Company: APK Elite Services (Freelance). Role: Full Stack Software Developer. Duration: 2024 - Present. Responsibilities: Engineered scalable Spring Boot microservices, designed high-throughput PostgreSQL schemas with custom indexing, and deployed dynamic, accessible user interfaces in Angular and React. Delivered client-facing production applications with fast API response times.`,
     metadata: { company: 'APK Elite Services', role: 'Full Stack Software Developer', source: 'website' },
   });
+
+  // I. Ingest Master Q&A Dataset (Curated Intent-Grounded Pairs)
+  if (Array.isArray(customQaDataset)) {
+    customQaDataset.forEach((qa: any, idx: number) => {
+      docs.push({
+        chunkId: `curated-qa-${idx}-${(qa.intent || 'general').toLowerCase()}`,
+        title: `Verified Q&A: ${qa.instruction}`,
+        category: qa.intent || 'General',
+        content: `Question: ${qa.instruction}. Verified Response: ${qa.response}. Intent: ${qa.intent || ''}.`,
+        metadata: { instruction: qa.instruction, intent: qa.intent, source: 'curated_dataset' },
+      });
+    });
+  }
 
   // B. Ingest All Dynamic Custom Q&A Items from PostgreSQL Table
   try {
