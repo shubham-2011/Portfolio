@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -61,16 +61,16 @@ export default function ContactForm() {
     >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 text-xs font-mono tracking-wider mb-3 backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-            <span>05 / DIRECT INQUIRIES &amp; CONTACT</span>
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-semibold uppercase tracking-widest mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+            <span>Direct Communication</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight animate-text-shimmer">
             Get In Touch
           </h2>
           <div className="w-16 h-1 bg-white mx-auto mt-3 rounded-full" />
           <p className="text-zinc-400 text-sm sm:text-base mt-4">
-            Available for Full-Time Software Engineering roles, contract architecture, or technical inquiries.
+            Have a project in mind or want to discuss engineering opportunities? Feel free to reach out.
           </p>
         </div>
 

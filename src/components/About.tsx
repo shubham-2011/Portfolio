@@ -51,9 +51,9 @@ export default function About({ content }: AboutProps) {
           transition={{ duration: 0.6 }}
           className="text-center max-w-3xl mx-auto mb-14"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 text-xs font-mono tracking-wider mb-3 backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-            <span>01 / ABOUT &amp; BACKGROUND</span>
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-semibold uppercase tracking-widest mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+            <span>Get To Know Me</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight animate-text-shimmer">
             {title}

@@ -199,18 +199,15 @@ export default function Hero({ content }: HeroProps) {
       <div className="hidden lg:grid max-w-7xl mx-auto w-full grid-cols-12 gap-12 items-center relative z-10">
         {/* Left Column: Text & Animated CTAs */}
         <div className="lg:col-span-7 space-y-6 text-left">
-          {/* Professional Developer Status Indicator */}
+          {/* Animated Status Pill */}
           <motion.div
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-700/80 text-zinc-300 text-xs font-mono tracking-wide backdrop-blur-md shadow-sm"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/15 text-zinc-300 text-xs font-semibold uppercase tracking-wider backdrop-blur-md shadow-sm"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-            </span>
-            <span>{status || 'Open to Software Engineering Roles • Pune, India'}</span>
+            <Sparkles className="w-3.5 h-3.5 text-white animate-pulse" />
+            <span>{status}</span>
           </motion.div>
 
           {/* Animated Shimmer Title & Rotating Typewriter Role */}
@@ -289,19 +286,19 @@ export default function Hero({ content }: HeroProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.45 }}
-            className="pt-6 grid grid-cols-3 gap-6 max-w-lg"
+            className="pt-6 grid grid-cols-3 gap-4 max-w-lg"
           >
             <div>
               <p className="text-2xl font-bold text-white tracking-tight">{yearsExperience}</p>
-              <p className="text-xs text-zinc-400 font-mono mt-0.5">Production Dev</p>
+              <p className="text-xs text-zinc-400">Years Learning &amp; Dev</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-zinc-200 tracking-tight">{technologiesCount}</p>
-              <p className="text-xs text-zinc-400 font-mono mt-0.5">Core Frameworks</p>
+              <p className="text-xs text-zinc-400">Core Technologies</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-white tracking-tight">{clientSatisfaction}</p>
-              <p className="text-xs text-zinc-400 font-mono mt-0.5">Code Reliability</p>
+              <p className="text-xs text-zinc-400">Client Focused</p>
             </div>
           </motion.div>
         </div>

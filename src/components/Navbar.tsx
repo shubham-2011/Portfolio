@@ -43,11 +43,8 @@ export default function Navbar() {
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-black font-bold shadow-md shadow-white/20 group-hover:scale-105 transition-transform">
             <Terminal className="w-4 h-4 text-black" />
           </div>
-          <span className="text-base font-bold tracking-tight text-white group-hover:text-zinc-300 transition-colors flex items-center gap-2">
-            <span>shubham.dev</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-850 border border-zinc-800 text-zinc-400 font-normal">
-              SDE
-            </span>
+          <span className="text-xl font-bold tracking-tight text-white group-hover:text-zinc-300 transition-colors">
+            SKM <span className="text-zinc-400 font-normal">Profile</span>
           </span>
         </Link>
 
@@ -66,7 +63,7 @@ export default function Navbar() {
             href="#contact"
             className="px-4 py-2 text-sm font-semibold rounded-lg bg-white text-black hover:bg-zinc-200 transition-all shadow-md shadow-white/10 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            Get in Touch
+            Hire Me
           </Link>
         </nav>
 
@@ -99,7 +96,7 @@ export default function Navbar() {
               onClick={() => setIsOpen(false)}
               className="block w-full text-center px-4 py-2.5 rounded-lg bg-white text-black font-semibold hover:bg-zinc-200"
             >
-              Get in Touch
+              Hire Me
             </Link>
           </div>
         </div>

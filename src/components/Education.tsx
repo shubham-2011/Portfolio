@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { GraduationCap, Briefcase, Calendar, MapPin, Award } from 'lucide-react';
+import { GraduationCap, Briefcase, Calendar, MapPin, Award, Sparkles } from 'lucide-react';
 
 export interface EducationItem {
   year: string;
@@ -93,9 +93,9 @@ export default function Education({
     >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 text-xs font-mono tracking-wider mb-3 backdrop-blur-md">
-            <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
-            <span>04 / ACADEMIC &amp; CAREER MILESTONES</span>
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-semibold uppercase tracking-widest mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+            <span>Academic Milestones</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight animate-text-shimmer">
             Education &amp; Experience
