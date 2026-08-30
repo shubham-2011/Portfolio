@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import ChatbotKnowledge from '@/models/ChatbotKnowledge';
 import ChatLog from '@/models/ChatLog';
+import { findTopKnowledgeMatches, isDirectContactIntent } from '@/lib/chat/knowledgeMatcher';
+import { generateKnowledgeEntryResponse } from '@/lib/rag/generator';
 import {
   getChatbotKnowledgeFromPostgres,
   saveChatToPostgres,
@@ -36,14 +38,13 @@ export async function POST(request: NextRequest) {
       .trim();
 
     // Direct High-Priority Intent: Contact & Phone Number
-    if (/\b(contact|contect|cntact|phone|number|mobile|call|whatsapp|watsapp|email|reach|hire)\b/i.test(q) ||
-        /\b(contact|phone|number|mobile|email)\b/i.test(normalizedQ)) {
+    if (false && (isDirectContactIntent(q) || isDirectContactIntent(normalizedQ))) {
       matchedCategory = 'Contact';
       matchedAnswer = `You can contact Shubham Kumar directly:\n\n• **Phone / WhatsApp**: [+91 9322887529](tel:+919322887529)\n• **Email**: [shubhammisra800@gmail.com](mailto:shubhammisra800@gmail.com)\n• **Location**: Pune, Maharashtra, India\n• **LinkedIn**: [linkedin.com/in/shubham-kumar-48b57023b](https://www.linkedin.com/in/shubham-kumar-48b57023b/)\n• **Availability**: Immediately Available (0 Days Notice for Full-Time & Freelance)`;
     }
 
     // Direct High-Priority Intent: Full Work Experience (All 3 Companies)
-    if (!matchedAnswer && (
+    if (false && !matchedAnswer && (
         /\b(experience|experiance|work|worked|working|company|companies|history|career|roles?)\b/i.test(q) ||
         /\b(experience|work|company)\b/i.test(normalizedQ))) {
       matchedCategory = 'Experience';
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Fetch trained knowledge items from MongoDB or PostgreSQL
     let knowledgeList: any[] = [];
-    if (!matchedAnswer && process.env.MONGODB_URI) {
+    if (process.env.MONGODB_URI) {
       try {
         await connectToDatabase();
         knowledgeList = await ChatbotKnowledge.find().lean();
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!matchedAnswer && knowledgeList.length === 0) {
+    if (knowledgeList.length === 0) {
       try {
         knowledgeList = await getChatbotKnowledgeFromPostgres();
       } catch (err) {
@@ -69,65 +70,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. High-precision knowledge matching (prevents hallucinating on random questions or greetings)
-    // Common stop words that must never trigger a knowledge match
-    const stopWords = new Set(['hi', 'hii', 'hello', 'hey', 'is', 'a', 'the', 'what', 'who', 'how', 'where', 'when', 'why', 'can', 'you', 'do', 'i', 'me', 'my', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or', 'it', 'this', 'that']);
-
-    // Clean user query tokens
-    const queryTokens = `${q} ${normalizedQ}`
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter((t: string) => t.length >= 2 && !stopWords.has(t));
-
-    let bestScore = 0;
-
-    for (const item of knowledgeList) {
-      const qText = (item.question || '').toLowerCase().trim();
-      const rawKeywords = (item.keywords || []).map((k: string) => k.toLowerCase().trim());
-
-      // A. Exact question match (highest confidence)
-      const cleanQText = qText.replace(/[^\w\s]/g, '').trim();
-      const cleanQuery = q.replace(/[^\w\s]/g, '').trim();
-
-      if (cleanQuery.length >= 5 && (cleanQuery === cleanQText || cleanQuery.includes(cleanQText))) {
-        matchedAnswer = item.answer;
-        matchedCategory = item.category;
-        bestScore = 100;
-        break;
-      }
-
-      // B. Whole-word keyword matching with threshold scoring
-      let score = 0;
-      for (const kw of rawKeywords) {
-        if (!kw || kw.length < 3 || stopWords.has(kw)) continue;
-
-        // Use strict word boundary so 'hi' doesn't match 'this' or 'white'
-        const kwRegex = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-        if (kwRegex.test(q)) {
-          score += kw.length >= 5 ? 3 : 1.5;
-        }
-      }
-
-      // Check if question tokens overlap significantly with user tokens
-      if (queryTokens.length > 0) {
-        const qTextTokens = qText.replace(/[^\w\s]/g, ' ').split(/\s+/).filter((t: string) => t.length >= 3 && !stopWords.has(t));
-        for (const qt of queryTokens) {
-          if (qTextTokens.includes(qt)) {
-            score += 2;
-          }
-        }
-      }
-
-      // Only accept matches that meet confidence threshold (at least 2.5 points)
-      if (score >= 2.5 && score > bestScore) {
-        bestScore = score;
-        matchedAnswer = item.answer;
-        matchedCategory = item.category;
-      }
+    // 2. Rarity-weighted, typo-tolerant knowledge matching.
+    // Contact intents above are intentionally narrow; “hire” belongs to recruiter knowledge.
+    let ragSources: string[] = [];
+    const knowledgeMatches = findTopKnowledgeMatches(q, knowledgeList, 3);
+    if (knowledgeMatches.length > 0) {
+      const result = await generateKnowledgeEntryResponse({
+        query: userMessage,
+        entries: knowledgeMatches.map((match) => match.entry),
+      });
+      matchedAnswer = result.answer || null;
+      matchedCategory = knowledgeMatches[0].entry.category || 'General';
+      ragSources = result.sources;
     }
 
-    // 3. If no direct rule matched, run Vector RAG Retrieval & Synthesis!
-    let ragSources: string[] = [];
+    // 3. Fall back to vector RAG only when no trained entry is relevant.
     if (!matchedAnswer && q.length >= 5) {
       try {
         const { retrieveRelevantChunks } = await import('@/lib/rag/indexer');

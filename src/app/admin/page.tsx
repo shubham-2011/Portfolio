@@ -3126,7 +3126,7 @@ export default function AdminPage() {
                 <div className="p-3 rounded-xl bg-black/60 border border-zinc-850 space-y-0.5">
                   <span className="text-zinc-500 font-mono text-[10px] uppercase">Embedding Model</span>
                   <p className="font-semibold text-white truncate">
-                    {ragStats?.embeddingModel || 'Google text-embedding-004 (768-dim)'}
+                    {ragStats?.embeddingModel || 'Google Gemini Embedding 2'}
                   </p>
                 </div>
 

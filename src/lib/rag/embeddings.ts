@@ -1,14 +1,14 @@
 /**
  * RAG Embedding Service for Shubham's Portfolio
  * Supports:
- * 1. Google Gemini text-embedding-004 (768-dim) when GEMINI_API_KEY is configured
+ * 1. Google Gemini Embedding 2 when GEMINI_API_KEY is configured
  * 2. High-accuracy deterministic local semantic projection (384-dim) as a zero-key fallback
  */
 
 export interface EmbeddingResult {
   embedding: number[];
   dimensions: number;
-  model: 'text-embedding-004' | 'local-semantic-projection';
+  model: 'gemini-embedding-2' | 'local-semantic-projection';
 }
 
 /**
@@ -93,7 +93,7 @@ function generateLocalSemanticVector(text: string, dimensions = 384): number[] {
 
 /**
  * Generates an embedding for a piece of text.
- * Uses Google Gemini text-embedding-004 if GEMINI_API_KEY is available.
+ * Uses Google Gemini Embedding 2 if GEMINI_API_KEY is available.
  * Otherwise uses the high-precision local semantic projection.
  */
 export async function generateEmbedding(text: string): Promise<EmbeddingResult> {
@@ -101,12 +101,12 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
 
   if (apiKey) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`;
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'models/text-embedding-004',
+          model: 'models/gemini-embedding-2',
           content: {
             parts: [{ text: text.slice(0, 8000) }],
           },
@@ -120,7 +120,7 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
           return {
             embedding: values,
             dimensions: values.length,
-            model: 'text-embedding-004',
+            model: 'gemini-embedding-2',
           };
         }
       } else {
