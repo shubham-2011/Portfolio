@@ -777,6 +777,8 @@ export async function ensurePortfolioEmbeddingsTable(clientPool: Pool) {
 
 export interface RAGChunk {
   chunkId: string;
+  chunk_id?: string;
+  id?: number;
   title: string;
   category: string;
   content: string;

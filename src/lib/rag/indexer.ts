@@ -208,6 +208,7 @@ export async function reindexPortfolioKnowledge(): Promise<{
       usedModel = embedResult.model;
       chunks.push({
         chunkId: doc.chunkId,
+        chunk_id: doc.chunkId,
         title: doc.title,
         category: doc.category,
         content: doc.content,
@@ -259,8 +260,9 @@ export async function retrieveRelevantChunks(
     if (localMatches && localMatches.length > 0) {
       return localMatches.map((m) => ({
         chunk: {
-          id: m.chunk.id ? Number(m.chunk.id) : undefined,
+          chunkId: m.chunk.chunk_id || m.chunk.chunkId || '',
           chunk_id: m.chunk.chunk_id,
+          id: m.chunk.id ? Number(m.chunk.id) : undefined,
           title: m.chunk.title,
           category: m.chunk.category,
           content: m.chunk.content,

@@ -4,7 +4,8 @@ import { cosineSimilarity } from './embeddings';
 
 export interface LocalVectorChunk {
   id?: number | string;
-  chunk_id: string;
+  chunk_id?: string;
+  chunkId?: string;
   title: string;
   category: string;
   content: string;
@@ -68,7 +69,10 @@ export function saveChunksToLocalStore(chunks: LocalVectorChunk[]): { success: b
     const map = new Map<string, LocalVectorChunk>();
 
     for (const item of existing) {
-      map.set(item.chunk_id, item);
+      const key = item.chunk_id || item.chunkId;
+      if (key) {
+        map.set(key, item);
+      }
     }
 
     const now = new Date().toISOString();
