@@ -23,9 +23,36 @@ export async function POST(request: NextRequest) {
     let matchedAnswer: string | null = null;
     let matchedCategory: string | null = null;
 
+    // Smart typo and abbreviation normalization
+    const normalizedQ = q
+      .replace(/\b(gime|gimme|give|gib|share|send|provide|tell|show)\b/g, ' ')
+      .replace(/\b(shubhaam|subham|shubh|shubam|shubhamb)\b/g, 'shubham')
+      .replace(/\b(contect|cntact|kontact)\b/g, 'contact')
+      .replace(/\b(experiance|experiense|experince)\b/g, 'experience')
+      .replace(/\b(fone|tele|telephone)\b/g, 'phone')
+      .replace(/\b(watsapp|whatsap)\b/g, 'whatsapp')
+      .replace(/\b(numb|numbr)\b/g, 'number')
+      .replace(/\b(mob|mobil)\b/g, 'mobile')
+      .trim();
+
+    // Direct High-Priority Intent: Contact & Phone Number
+    if (/\b(contact|contect|cntact|phone|number|mobile|call|whatsapp|watsapp|email|reach|hire)\b/i.test(q) ||
+        /\b(contact|phone|number|mobile|email)\b/i.test(normalizedQ)) {
+      matchedCategory = 'Contact';
+      matchedAnswer = `You can contact Shubham Kumar directly:\n\n• **Phone / WhatsApp**: [+91 9322887529](tel:+919322887529)\n• **Email**: [shubhammisra800@gmail.com](mailto:shubhammisra800@gmail.com)\n• **Location**: Pune, Maharashtra, India\n• **LinkedIn**: [linkedin.com/in/shubham-kumar-48b57023b](https://www.linkedin.com/in/shubham-kumar-48b57023b/)\n• **Availability**: Immediately Available (0 Days Notice for Full-Time & Freelance)`;
+    }
+
+    // Direct High-Priority Intent: Full Work Experience (All 3 Companies)
+    if (!matchedAnswer && (
+        /\b(experience|experiance|work|worked|working|company|companies|history|career|roles?)\b/i.test(q) ||
+        /\b(experience|work|company)\b/i.test(normalizedQ))) {
+      matchedCategory = 'Experience';
+      matchedAnswer = `Shubham Kumar has extensive full-stack engineering experience across the following companies and roles:\n\n1. **APK Elite Services** — Freelance Full Stack Software Developer (2024 - Present)\n   • Engineered scalable Spring Boot microservices, high-speed PostgreSQL databases, and modern Angular and React frontends.\n   • Handled end-to-end SDLC, REST API security, and client production deployments.\n\n2. **Tipco Engineering** — Website Developer (Jul 2026 - Aug 2026)\n   • Engineered scalable microservices and intuitive user interfaces.\n   • Collaborated actively with cross-functional agile teams and optimized production database performance.\n\n3. **SetTribe** — Full Stack Developer Intern (Feb 2024 - Nov 2024)\n   • Contributed to customer-facing web applications and engineered reusable UI components.\n   • Developed and consumed RESTful APIs and collaborated in agile sprint cycles.`;
+    }
+
     // 1. Fetch trained knowledge items from MongoDB or PostgreSQL
     let knowledgeList: any[] = [];
-    if (process.env.MONGODB_URI) {
+    if (!matchedAnswer && process.env.MONGODB_URI) {
       try {
         await connectToDatabase();
         knowledgeList = await ChatbotKnowledge.find().lean();
@@ -34,7 +61,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (knowledgeList.length === 0) {
+    if (!matchedAnswer && knowledgeList.length === 0) {
       try {
         knowledgeList = await getChatbotKnowledgeFromPostgres();
       } catch (err) {
@@ -47,7 +74,7 @@ export async function POST(request: NextRequest) {
     const stopWords = new Set(['hi', 'hii', 'hello', 'hey', 'is', 'a', 'the', 'what', 'who', 'how', 'where', 'when', 'why', 'can', 'you', 'do', 'i', 'me', 'my', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or', 'it', 'this', 'that']);
 
     // Clean user query tokens
-    const queryTokens = q
+    const queryTokens = `${q} ${normalizedQ}`
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
       .filter((t: string) => t.length >= 2 && !stopWords.has(t));
@@ -106,10 +133,14 @@ export async function POST(request: NextRequest) {
         const { retrieveRelevantChunks } = await import('@/lib/rag/indexer');
         const { generateRAGResponse } = await import('@/lib/rag/generator');
 
-        const relevantChunks = await retrieveRelevantChunks(q, 3);
-        if (relevantChunks.length > 0 && relevantChunks[0].score >= 0.35) {
+        let relevantChunks = await retrieveRelevantChunks(q, 4);
+        if ((!relevantChunks || relevantChunks.length === 0 || relevantChunks[0].score < 0.18) && normalizedQ !== q) {
+          relevantChunks = await retrieveRelevantChunks(normalizedQ, 4);
+        }
+
+        if (relevantChunks.length > 0 && relevantChunks[0].score >= 0.18) {
           const ragResult = await generateRAGResponse({
-            query: q,
+            query: userMessage,
             contextChunks: relevantChunks,
           });
           if (ragResult.answer) {

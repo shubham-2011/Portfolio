@@ -252,11 +252,18 @@ export async function retrieveRelevantChunks(
   topK = 4
 ): Promise<{ chunk: RAGChunk; score: number }[]> {
   try {
-    // 1. Embed query
+    // 1. Auto-build Vector Store dynamically at runtime if empty
+    let localChunks = getAllChunksFromLocalStore();
+    if (!localChunks || localChunks.length === 0) {
+      console.log('⚡ Vector DB not found in runtime memory/disk. Auto-building dynamically at runtime now...');
+      await reindexPortfolioKnowledge();
+    }
+
+    // 2. Embed query
     const { embedding: queryEmbedding } = await generateEmbedding(query);
 
-    // 2. Query Self-Hosted Local Vector Store first (sub-millisecond, zero cloud dependency)
-    const localMatches = searchLocalVectorStore(queryEmbedding, topK, 0.20);
+    // 3. Query Self-Hosted Local Vector Store (sub-millisecond, zero cloud dependency)
+    const localMatches = searchLocalVectorStore(queryEmbedding, topK, 0.18);
     if (localMatches && localMatches.length > 0) {
       return localMatches.map((m) => ({
         chunk: {

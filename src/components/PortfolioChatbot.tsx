@@ -441,12 +441,12 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       };
     }
 
-    // 15. Contact / Hire / Message
-    if (/\b(contact|hire|email|phone|call|message|reach\s+out|interview|schedule)\b/i.test(q)) {
+    // 15. Contact / Hire / Message / Phone Number (Handles typos like contect, mobile, number, etc.)
+    if (/\b(contact|contect|cntact|kontact|hire|email|phone|fone|number|num|mobile|mobil|call|message|whatsapp|watsapp|reach|talk)\b/i.test(q)) {
       return {
         id: Date.now().toString(),
         sender: 'bot',
-        text: `### 📬 Connect with Shubham\n\n• **Email**: [shubhammisra800@gmail.com](mailto:shubhammisra800@gmail.com)\n• **Phone**: [+91 9322887529](tel:+919322887529)\n• **Location**: Pune, Maharashtra, India\n• **Availability**: Open for Full-Time & Freelance opportunities\n\nYou can also **send a direct message** right here in this chat!`,
+        text: `### 📬 Connect with Shubham\n\n• **Phone / WhatsApp**: [+91 9322887529](tel:+919322887529)\n• **Email**: [shubhammisra800@gmail.com](mailto:shubhammisra800@gmail.com)\n• **Location**: Pune, Maharashtra, India\n• **LinkedIn**: [linkedin.com/in/shubham-kumar-48b57023b](https://www.linkedin.com/in/shubham-kumar-48b57023b/)\n• **Availability**: Open for Full-Time & Freelance opportunities (0 Days Notice)\n\nYou can also **send a direct message** right here in this chat!`,
         timestamp: time,
         quickActions: [
           { label: '💬 Send Message Now', action: 'leave_message' },
@@ -456,13 +456,12 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       };
     }
 
-    // 16. Experience query
-    if (/\b(experience|career|history|background)\b/i.test(q)) {
-      const expCount = content?.hero?.yearsExperience || '2+';
+    // 16. Experience & Work History (All 3 Companies)
+    if (/\b(experience|experiance|work|worked|working|company|companies|history|career|roles?|intern|internship)\b/i.test(q)) {
       return {
         id: Date.now().toString(),
         sender: 'bot',
-        text: `### 💼 Professional Experience\n\nShubham has **${expCount} years** of hands-on software development experience specializing in enterprise full-stack development, distributed backend architecture in Java & Spring Boot, and responsive frontend applications in Angular & React.\n\nHe has worked on cloud deployment, optimized SQL databases, and secure RESTful microservices.`,
+        text: `### 💼 Shubham's Professional Work Experience\n\nShubham has proven experience across enterprise microservices, databases, and responsive web applications:\n\n1. **APK Elite Services** — Freelance Full Stack Developer *(2024 - Present)*\n   • Engineered scalable Spring Boot microservices, high-speed PostgreSQL databases, and modern Angular 18 & React 19 frontends.\n   • Managed end-to-end SDLC and client production deployments.\n\n2. **Tipco Engineering** — Website Developer *(Jul 2026 - Aug 2026)*\n   • Engineered scalable microservices and intuitive user interfaces.\n   • Collaborated actively in agile engineering teams and optimized database query execution.\n\n3. **SetTribe** — Full Stack Developer Intern *(Feb 2024 - Nov 2024)*\n   • Contributed to customer-facing web applications, engineered reusable UI modules, and integrated RESTful APIs.`,
         timestamp: time,
         quickActions: [
           { label: '🚀 View Projects', action: 'projects' },

@@ -26,6 +26,10 @@ export interface LocalVectorStoreStats {
 
 const STORAGE_DIR = path.join(process.cwd(), 'data', 'vectors');
 const STORAGE_FILE = path.join(STORAGE_DIR, 'portfolio_embeddings.json');
+const TMP_STORAGE_FILE = path.join('/tmp', 'portfolio_embeddings.json');
+
+// In-memory runtime vector cache (fastest, guaranteed across all serverless executions)
+let inMemoryStore: LocalVectorChunk[] = [];
 
 /**
  * Ensures the data/vectors directory exists
@@ -36,31 +40,51 @@ function ensureStorageDirectory(): void {
       fs.mkdirSync(STORAGE_DIR, { recursive: true });
     }
   } catch (err) {
-    console.error('Failed to create vector storage directory:', err);
+    // Ignore error if running on read-only filesystem (e.g. AWS Lambda / Netlify functions)
   }
 }
 
 /**
- * Reads all vector chunks from the local self-hosted store
+ * Reads all vector chunks from in-memory cache or local filesystem
  */
 export function getAllChunksFromLocalStore(): LocalVectorChunk[] {
+  if (inMemoryStore && inMemoryStore.length > 0) {
+    return inMemoryStore;
+  }
+
   try {
     ensureStorageDirectory();
-    if (!fs.existsSync(STORAGE_FILE)) {
-      return [];
+    if (fs.existsSync(STORAGE_FILE)) {
+      const raw = fs.readFileSync(STORAGE_FILE, 'utf-8');
+      if (raw.trim()) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          inMemoryStore = parsed;
+          return inMemoryStore;
+        }
+      }
     }
-    const raw = fs.readFileSync(STORAGE_FILE, 'utf-8');
-    if (!raw.trim()) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    console.error('Error reading from local vector store:', err);
-    return [];
-  }
+  } catch (_) {}
+
+  // Fallback to /tmp in serverless environments
+  try {
+    if (fs.existsSync(TMP_STORAGE_FILE)) {
+      const raw = fs.readFileSync(TMP_STORAGE_FILE, 'utf-8');
+      if (raw.trim()) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          inMemoryStore = parsed;
+          return inMemoryStore;
+        }
+      }
+    }
+  } catch (_) {}
+
+  return inMemoryStore;
 }
 
 /**
- * Saves or updates vector chunks in the local self-hosted store
+ * Saves or updates vector chunks in in-memory cache and on disk
  */
 export function saveChunksToLocalStore(chunks: LocalVectorChunk[]): { success: boolean; total: number } {
   try {
@@ -81,17 +105,28 @@ export function saveChunksToLocalStore(chunks: LocalVectorChunk[]): { success: b
       map.set(cid, {
         ...chunk,
         chunk_id: cid,
+        chunkId: cid,
         updated_at: now,
       });
     }
 
     const updatedList = Array.from(map.values());
-    fs.writeFileSync(STORAGE_FILE, JSON.stringify(updatedList, null, 2), 'utf-8');
+    inMemoryStore = updatedList;
+
+    // Try saving to project data folder
+    try {
+      fs.writeFileSync(STORAGE_FILE, JSON.stringify(updatedList, null, 2), 'utf-8');
+    } catch (fsErr) {
+      // If filesystem is read-only (serverless), fallback to /tmp
+      try {
+        fs.writeFileSync(TMP_STORAGE_FILE, JSON.stringify(updatedList, null, 2), 'utf-8');
+      } catch (_) {}
+    }
 
     return { success: true, total: updatedList.length };
   } catch (err) {
     console.error('Error saving to local vector store:', err);
-    return { success: false, total: 0 };
+    return { success: false, total: inMemoryStore.length };
   }
 }
 
