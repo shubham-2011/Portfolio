@@ -22,6 +22,9 @@ import {
   ArrowUp,
   ArrowDown,
   Sparkles,
+  Bot,
+  Brain,
+  MessageSquare,
   Briefcase,
   GraduationCap,
   Code2,
@@ -88,10 +91,30 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'content' | 'inbox' | 'analytics' | 'database' | 'media'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'inbox' | 'analytics' | 'database' | 'media' | 'chatbot'>('content');
   const [contentSubTab, setContentSubTab] = useState<
     'skills' | 'experience_education' | 'projects' | 'hero_about'
   >('skills');
+
+  // Chatbot AI Model Training State
+  const [knowledgeList, setKnowledgeList] = useState<any[]>([]);
+  const [isLoadingKnowledge, setIsLoadingKnowledge] = useState(false);
+  const [knowledgeSearch, setKnowledgeSearch] = useState('');
+  const [knowledgeCategoryFilter, setKnowledgeCategoryFilter] = useState('All');
+  const [knowledgeForm, setKnowledgeForm] = useState({
+    id: '',
+    question: '',
+    answer: '',
+    category: 'Experience',
+    keywords: '',
+  });
+  const [isSavingKnowledge, setIsSavingKnowledge] = useState(false);
+  const [knowledgeSaveSuccess, setKnowledgeSaveSuccess] = useState(false);
+  const [chatbotLogs, setChatbotLogs] = useState<any[]>([]);
+  const [isLoadingChatbotLogs, setIsLoadingChatbotLogs] = useState(false);
+  const [knowledgeSource, setKnowledgeSource] = useState('postgres');
+  const [ragStats, setRagStats] = useState<any>(null);
+  const [isReindexingRAG, setIsReindexingRAG] = useState(false);
 
   // Database Connection Status
   const [dbStatus, setDbStatus] = useState<{ connected: boolean; database?: string; error?: string; source?: string } | null>(null);
@@ -311,6 +334,128 @@ export default function AdminPage() {
     }
   };
 
+  // =========================================================================
+  // 🤖 AI CHATBOT KNOWLEDGE BASE & TRAINING HANDLERS
+  // =========================================================================
+  const fetchChatbotKnowledge = async () => {
+    setIsLoadingKnowledge(true);
+    try {
+      const res = await fetch('/api/admin/chatbot/knowledge', { cache: 'no-store' });
+      const data = await res.json();
+      if (res.ok && data.knowledge) {
+        setKnowledgeList(data.knowledge);
+        setKnowledgeSource(data.source || 'postgres');
+      }
+    } catch (err) {
+      console.error('Error fetching chatbot knowledge:', err);
+    } finally {
+      setIsLoadingKnowledge(false);
+    }
+  };
+
+  const fetchChatbotLogs = async () => {
+    setIsLoadingChatbotLogs(true);
+    try {
+      const res = await fetch('/api/admin/chatbot/logs', { cache: 'no-store' });
+      const data = await res.json();
+      if (res.ok && data.logs) {
+        setChatbotLogs(data.logs);
+      }
+    } catch (err) {
+      console.error('Error fetching chatbot logs:', err);
+    } finally {
+      setIsLoadingChatbotLogs(false);
+    }
+  };
+
+  const handleSaveKnowledge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!knowledgeForm.question.trim() || !knowledgeForm.answer.trim()) {
+      alert('Please enter both a question and an answer.');
+      return;
+    }
+
+    setIsSavingKnowledge(true);
+    try {
+      const res = await fetch('/api/admin/chatbot/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(knowledgeForm),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setKnowledgeSaveSuccess(true);
+        setTimeout(() => setKnowledgeSaveSuccess(false), 3000);
+        setKnowledgeForm({ id: '', question: '', answer: '', category: 'Experience', keywords: '' });
+        await fetchChatbotKnowledge();
+      } else {
+        alert('Failed to save knowledge: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Network error while saving knowledge.');
+    } finally {
+      setIsSavingKnowledge(false);
+    }
+  };
+
+  const handleDeleteKnowledge = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this AI training knowledge item?')) return;
+    try {
+      const res = await fetch(`/api/admin/chatbot/knowledge?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setKnowledgeList((prev) => prev.filter((item) => item.id !== id));
+      } else {
+        alert('Failed to delete knowledge: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Network error while deleting item.');
+    }
+  };
+
+  const handleEditKnowledge = (item: any) => {
+    setKnowledgeForm({
+      id: item.id,
+      question: item.question,
+      answer: item.answer,
+      category: item.category || 'General',
+      keywords: Array.isArray(item.keywords) ? item.keywords.join(', ') : item.keywords || '',
+    });
+  };
+
+  const fetchRAGStats = async () => {
+    try {
+      const res = await fetch('/api/admin/chatbot/rag', { cache: 'no-store' });
+      const data = await res.json();
+      if (res.ok && data.stats) {
+        setRagStats(data.stats);
+      }
+    } catch (err) {
+      console.warn('Error fetching RAG stats:', err);
+    }
+  };
+
+  const handleReindexRAG = async () => {
+    setIsReindexingRAG(true);
+    try {
+      const res = await fetch('/api/admin/chatbot/rag', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`Successfully indexed ${data.indexedCount} knowledge chunks into Vector Database using ${data.model}!`);
+        await fetchRAGStats();
+      } else {
+        alert('RAG Indexing notice: ' + (data.error || 'Failed to reindex'));
+      }
+    } catch (err) {
+      alert('Network error while reindexing RAG.');
+    } finally {
+      setIsReindexingRAG(false);
+    }
+  };
+
   useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -323,6 +468,8 @@ export default function AdminPage() {
           fetchContent();
           fetchAnalytics();
           fetchMediaAssets();
+          fetchChatbotKnowledge();
+          fetchRAGStats();
         }
       } catch (err) {
         console.log('Could not restore admin session.');
@@ -728,67 +875,64 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-white/30 text-zinc-400 hover:text-white transition-colors"
-            title="View Live Portfolio"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div>
-            <h1 className="text-lg font-bold flex flex-wrap items-center gap-2">
-              <span>Admin Management Portal</span>
-              {dbStatus?.connected ? (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span>PostgreSQL Connected ({dbStatus.database || 'neondb'})</span>
-                </span>
-              ) : (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                  <span>{dbStatus ? `DB Error: ${dbStatus.error}` : 'Checking Database...'}</span>
-                </span>
-              )}
-            </h1>
-            <p className="text-xs text-zinc-400">
-              Database: {dbStatus?.database || 'neondb'} | Neon Tech Cloud ({dbStatus?.source || 'Auto'})
-            </p>
-          </div>
-        </div>
-
+      <header className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-zinc-800/80 px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            target="_blank"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white transition-colors"
+            className="p-1.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-zinc-400 hover:text-white transition-colors"
+            title="Return to Live Site"
           >
-            <span>View Live Site</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-zinc-500">shubham.dev</span>
+            <span className="text-zinc-600">/</span>
+            <span className="text-xs font-mono font-medium text-white">admin-console</span>
+            {dbStatus?.connected ? (
+              <span className="inline-flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>pg:connected ({dbStatus.database || 'neondb'})</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span>pg:disconnected</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/"
+            target="_blank"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-600 bg-zinc-900/60 text-xs font-mono text-zinc-300 hover:text-white transition-colors"
+          >
+            <span>Live Site</span>
+            <ExternalLink className="w-3 h-3 text-zinc-400" />
           </Link>
           <button
             onClick={handleLogout}
-            className="px-3.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-red-900/60 bg-zinc-900/60 hover:bg-red-950/20 text-xs font-mono text-zinc-400 hover:text-red-300 transition-colors"
           >
-            Lock Session
+            Sign Out
           </button>
         </div>
       </header>
 
-      {/* Main Tabs Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-8 pb-4">
-        <div className="flex flex-wrap gap-3 border-b border-zinc-800 pb-4">
+      {/* Main Tabs Header - Linear / Vercel Grade */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-6 pb-2">
+        <div className="flex items-center gap-1 border-b border-zinc-805 border-zinc-800/80 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('content')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-mono tracking-wide border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'content'
-                ? 'bg-white text-black shadow-md shadow-white/10'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'border-white text-white font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
             }`}
           >
-            <Edit3 className="w-4 h-4" />
-            <span>Content CMS (Projects, Skills, Education)</span>
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Content CMS</span>
           </button>
 
           <button
@@ -796,19 +940,15 @@ export default function AdminPage() {
               setActiveTab('media');
               fetchMediaAssets();
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-mono tracking-wide border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'media'
-                ? 'bg-white text-black shadow-md shadow-white/10'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'border-white text-white font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
             }`}
           >
-            <ImageIcon className="w-4 h-4 text-cyan-400" />
-            <span>Media & Icons</span>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full ${
-                activeTab === 'media' ? 'bg-black text-white' : 'bg-zinc-800 text-zinc-300'
-              }`}
-            >
+            <ImageIcon className="w-3.5 h-3.5 text-zinc-300" />
+            <span>Media Assets</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300">
               {mediaAssets.length}
             </span>
           </button>
@@ -818,21 +958,19 @@ export default function AdminPage() {
               setActiveTab('inbox');
               fetchMessages();
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-mono tracking-wide border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'inbox'
-                ? 'bg-white text-black shadow-md shadow-white/10'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'border-white text-white font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
             }`}
           >
-            <Mail className="w-4 h-4" />
-            <span>Messages Inbox</span>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full ${
-                activeTab === 'inbox' ? 'bg-black text-white' : 'bg-zinc-800 text-zinc-300'
-              }`}
-            >
-              {messages.length}
-            </span>
+            <Mail className="w-3.5 h-3.5" />
+            <span>Messages</span>
+            {messages.length > 0 && (
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300">
+                {messages.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -840,33 +978,48 @@ export default function AdminPage() {
               setActiveTab('analytics');
               fetchAnalytics();
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-mono tracking-wide border-b-2 transition-all whitespace-nowrap ${
               activeTab === 'analytics'
-                ? 'bg-white text-black shadow-md shadow-white/10'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                ? 'border-white text-white font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
             }`}
           >
-            <BarChart2 className="w-4 h-4 text-emerald-400" />
-            <span>Visitor Analytics & Fingerprints</span>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full ${
-                activeTab === 'analytics' ? 'bg-black text-white' : 'bg-zinc-800 text-zinc-300'
-              }`}
-            >
+            <BarChart2 className="w-3.5 h-3.5 text-zinc-300" />
+            <span>Analytics</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300">
               {analyticsStats.totalVisits || 0}
             </span>
           </button>
 
           <button
-            onClick={() => setActiveTab('database')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === 'database'
-                ? 'bg-white text-black shadow-md shadow-white/10'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+            onClick={() => {
+              setActiveTab('chatbot');
+              fetchChatbotKnowledge();
+              fetchChatbotLogs();
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-mono tracking-wide border-b-2 transition-all whitespace-nowrap ${
+              activeTab === 'chatbot'
+                ? 'border-white text-white font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
             }`}
           >
-            <Database className="w-4 h-4" />
-            <span>Free DB Tools (pgAdmin / DBeaver)</span>
+            <Bot className="w-3.5 h-3.5 text-zinc-300" />
+            <span>RAG &amp; Knowledge</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300">
+              {ragStats?.totalChunks || knowledgeList.length || 0}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('database')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-mono tracking-wide border-b-2 transition-all whitespace-nowrap ${
+              activeTab === 'database'
+                ? 'border-white text-white font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Database Tools</span>
           </button>
         </div>
       </div>
@@ -2863,6 +3016,515 @@ export default function AdminPage() {
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 🤖 TAB: AI CHATBOT TRAINING & KNOWLEDGE BASE                              */}
+        {/* ========================================================================= */}
+        {activeTab === 'chatbot' && (
+          <div className="space-y-8">
+            {/* Top Toolbar & Summary Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-zinc-900/60 p-6 rounded-2xl border border-zinc-800 backdrop-blur-md">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                  <Bot className="w-6 h-6 text-cyan-400" />
+                  <span>AI Chatbot Training & Knowledge Base</span>
+                </h2>
+                <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
+                  Train your portfolio chatbot with custom information about your work history, companies, projects, and recruiter FAQs. Answers are instantly saved and queried in real-time.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    fetchChatbotKnowledge();
+                    fetchChatbotLogs();
+                  }}
+                  disabled={isLoadingKnowledge}
+                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 hover:text-white flex items-center gap-2 transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingKnowledge ? 'animate-spin' : ''}`} />
+                  <span>{isLoadingKnowledge ? 'Syncing...' : 'Sync Knowledge'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Dual Database Connection Status Banner */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-zinc-950/90 border border-emerald-900/50 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">Neon PostgreSQL</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono">
+                      Active Cloud DB
+                    </span>
+                  </div>
+                  <p className="text-zinc-400">
+                    Connected to AWS US-East table <code className="text-zinc-300 font-mono">portfolio_chatbot_knowledge</code>. Real-time sub-millisecond queries.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-zinc-950/90 border border-zinc-800 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Server className="w-4 h-4" />
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">MongoDB Integration</span>
+                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-mono">
+                      Ready for Dual-Sync
+                    </span>
+                  </div>
+                  <p className="text-zinc-400">
+                    Mongoose schemas & models are ready. To activate dual-sync, add <code className="text-zinc-300 font-mono">MONGODB_URI=mongodb+srv://...</code> in <code className="text-zinc-300 font-mono">.env.local</code>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Vector RAG Pipeline Status & 1-Click Embedder Card */}
+            <div className="p-5 rounded-xl bg-zinc-950 border border-zinc-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300">
+                      <Brain className="w-4 h-4" />
+                    </span>
+                    <h3 className="text-sm font-semibold text-white font-mono">
+                      Vector RAG Pipeline (Website + Database)
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
+                      {ragStats?.totalChunks || 0} Chunks Indexed
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                    Embeds complete website sections (Hero, About, Skills, Projects, Education, Contact) and database Q&amp;A records into dense semantic vectors in Neon PostgreSQL.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleReindexRAG}
+                  disabled={isReindexingRAG}
+                  className="px-4 py-2 rounded-lg bg-white hover:bg-zinc-200 text-black font-semibold text-xs flex items-center gap-2 transition-all shadow-sm shrink-0 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isReindexingRAG ? 'animate-spin' : ''}`} />
+                  <span>{isReindexingRAG ? 'Reindexing...' : 'Re-Embed Website & DB'}</span>
+                </button>
+              </div>
+
+              {/* RAG Metrics & Pipeline Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-zinc-800 text-xs">
+                <div className="p-3 rounded-xl bg-black/60 border border-zinc-850 space-y-0.5">
+                  <span className="text-zinc-500 font-mono text-[10px] uppercase">Embedding Model</span>
+                  <p className="font-semibold text-white truncate">
+                    {ragStats?.embeddingModel || 'Google text-embedding-004 (768-dim)'}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/60 border border-zinc-850 space-y-0.5">
+                  <span className="text-zinc-500 font-mono text-[10px] uppercase">Synthesis Engine</span>
+                  <p className="font-semibold text-white truncate">
+                    {ragStats?.generationModel || 'Google Gemini 1.5 Flash'}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/60 border border-zinc-850 space-y-0.5">
+                  <span className="text-zinc-500 font-mono text-[10px] uppercase">Indexed Scope</span>
+                  <p className="font-semibold text-emerald-400 truncate">
+                    🌐 Website Sections + 🗄️ Database Q&amp;As
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Training Form Card */}
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-850 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-cyan-400" />
+                    <span>{knowledgeForm.id ? 'Edit Training Knowledge Item' : 'Train New Knowledge / Custom Q&A'}</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Teach the assistant exact details about your experience, past companies, achievements, or salary preferences.
+                  </p>
+                </div>
+
+                {knowledgeForm.id && (
+                  <button
+                    type="button"
+                    onClick={() => setKnowledgeForm({ id: '', question: '', answer: '', category: 'Experience', keywords: '' })}
+                    className="text-xs text-zinc-400 hover:text-white px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800"
+                  >
+                    Cancel Editing
+                  </button>
+                )}
+              </div>
+
+              {/* Pre-set Quick Templates */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">
+                  ⚡ 1-Click Common Recruiter Training Templates:
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setKnowledgeForm({
+                        id: '',
+                        question: 'Where has Shubham worked? / What is his previous company history?',
+                        answer:
+                          'Shubham Kumar has worked as a Full Stack Software Developer delivering enterprise-grade backend systems and responsive web applications at **APK Elite Services** (Freelance Full Stack Engineer), where he engineered scalable Spring Boot microservices, high-speed PostgreSQL databases, and modern Angular and React frontends.',
+                        category: 'Experience',
+                        keywords: 'work, working, warking, company, companies, experience, previous, apk elite, employer, employment, job',
+                      })
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1.5"
+                  >
+                    <span>🏢 Where has Shubham worked?</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setKnowledgeForm({
+                        id: '',
+                        question: 'Why should we hire Shubham Kumar?',
+                        answer:
+                          'Shubham brings hands-on mastery of full-stack engineering across **Java, Spring Boot, PostgreSQL, Angular, and React**. He combines robust backend architectural principles (clean code, ACID transactions, microservices) with dynamic, polished user interfaces and holds both a **BSc and MSc in Computer Science**.',
+                        category: 'General',
+                        keywords: 'why hire, strengths, why choose, value, qualities, interview',
+                      })
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1.5"
+                  >
+                    <span>🎯 Why should we hire Shubham?</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setKnowledgeForm({
+                        id: '',
+                        question: 'What is Shubham\'s notice period and availability?',
+                        answer:
+                          'Shubham is **immediately available** to join promising opportunities as a Full-Time Software Engineer. He has **0 notice period** and is open to immediate start dates for remote, hybrid, or on-site roles.',
+                        category: 'Contact & Career',
+                        keywords: 'notice period, immediate, join, availability, start date, hiring',
+                      })
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1.5"
+                  >
+                    <span>⏱️ Immediate Notice Period</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setKnowledgeForm({
+                        id: '',
+                        question: 'Is Shubham willing to relocate?',
+                        answer:
+                          'Yes! Shubham is based in **Pune, Maharashtra, India**, and is fully open to relocation to major tech hubs (Bengaluru, Hyderabad, Mumbai, Delhi-NCR) as well as global remote roles.',
+                        category: 'Contact & Career',
+                        keywords: 'relocate, relocation, location, pune, bangalore, hyderabad, remote',
+                      })
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1.5"
+                  >
+                    <span>📍 Relocation Preferences</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Form Input Fields */}
+              <form onSubmit={handleSaveKnowledge} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="block text-xs font-semibold text-zinc-300">
+                      User Question or Topic <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g., Where was Shubham working? / What are his key projects?"
+                      value={knowledgeForm.question}
+                      onChange={(e) => setKnowledgeForm({ ...knowledgeForm, question: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-black border border-zinc-700 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-zinc-300">Category</label>
+                    <select
+                      value={knowledgeForm.category}
+                      onChange={(e) => setKnowledgeForm({ ...knowledgeForm, category: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-black border border-zinc-700 text-sm text-white focus:outline-none focus:border-cyan-400"
+                    >
+                      <option value="Experience">Experience & Companies</option>
+                      <option value="Skills">Skills & Tech Stack</option>
+                      <option value="Projects">Projects & Architecture</option>
+                      <option value="Education">Education & Credentials</option>
+                      <option value="Contact & Career">Contact & Career Availability</option>
+                      <option value="General">General / Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-zinc-300">
+                    Search Keywords & Typos (Comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., working, worked, warking, company, companies, experience, apk elite, history"
+                    value={knowledgeForm.keywords}
+                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, keywords: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-black border border-zinc-700 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400 font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-zinc-500">
+                    Include common words, abbreviations, or typos (e.g. &quot;warking&quot; for working) so the AI matches user variations.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-zinc-300">
+                    Chatbot Answer (Supports Markdown &amp; Bold) <span className="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Write the exact answer the chatbot should reply with..."
+                    value={knowledgeForm.answer}
+                    onChange={(e) => setKnowledgeForm({ ...knowledgeForm, answer: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-black border border-zinc-700 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400 leading-relaxed font-sans"
+                  ></textarea>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  {knowledgeSaveSuccess ? (
+                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Saved and trained successfully to Neon PostgreSQL!</span>
+                    </div>
+                  ) : (
+                    <div></div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSavingKnowledge}
+                    className="px-6 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-cyan-400/20 disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingKnowledge ? 'Training Model...' : knowledgeForm.id ? 'Update Knowledge' : 'Train & Save Knowledge'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Knowledge Base List & Management */}
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>Trained Knowledge Items</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-mono">
+                      {knowledgeList.length} total
+                    </span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    All trained responses currently active in the chatbot.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="relative w-64">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input
+                      type="text"
+                      placeholder="Filter questions..."
+                      value={knowledgeSearch}
+                      onChange={(e) => setKnowledgeSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-black border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Items List */}
+              {isLoadingKnowledge ? (
+                <div className="py-12 text-center text-zinc-500 text-xs">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-zinc-400" />
+                  <span>Loading trained knowledge items...</span>
+                </div>
+              ) : knowledgeList.length === 0 ? (
+                <div className="py-12 text-center text-zinc-500 text-xs border border-dashed border-zinc-800 rounded-xl">
+                  <Bot className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
+                  <p className="font-semibold text-zinc-400">No custom knowledge items added yet</p>
+                  <p className="mt-1 text-zinc-500">
+                    Use the 1-Click Templates above to add information about your work experience and company history!
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {knowledgeList
+                    .filter((item) => {
+                      const q = knowledgeSearch.toLowerCase();
+                      return (
+                        !q ||
+                        item.question?.toLowerCase().includes(q) ||
+                        item.answer?.toLowerCase().includes(q) ||
+                        item.category?.toLowerCase().includes(q) ||
+                        (Array.isArray(item.keywords) && item.keywords.some((k: string) => k.toLowerCase().includes(q)))
+                      );
+                    })
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-4 rounded-xl bg-black/60 border border-zinc-800 hover:border-zinc-700 transition-all space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                {item.category || 'General'}
+                              </span>
+                              <h4 className="text-sm font-bold text-white">{item.question}</h4>
+                            </div>
+
+                            {/* Keywords pills */}
+                            {Array.isArray(item.keywords) && item.keywords.length > 0 && (
+                              <div className="flex flex-wrap gap-1 pt-1">
+                                {item.keywords.map((kw: string, ki: number) => (
+                                  <span
+                                    key={ki}
+                                    className="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 font-mono text-[10px] border border-zinc-800"
+                                  >
+                                    #{kw}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleEditKnowledge(item)}
+                              className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-white hover:text-black text-xs font-semibold text-zinc-300 transition-colors flex items-center gap-1"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteKnowledge(item.id)}
+                              className="p-1.5 rounded-lg bg-zinc-900 hover:bg-red-500 hover:text-white text-zinc-400 transition-colors"
+                              title="Delete Item"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-zinc-300 bg-zinc-950/80 p-3 rounded-lg border border-zinc-850 whitespace-pre-wrap leading-relaxed">
+                          {item.answer}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Visitor Chat Logs Audit */}
+            <div className="p-6 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-850 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-emerald-400" />
+                    <span>Recent Visitor Chat Inquiries</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-mono">
+                      {chatbotLogs.length} logged
+                    </span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    See what recruiters and visitors are asking your chatbot, and click &quot;Train Question&quot; to provide tailored answers.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={fetchChatbotLogs}
+                  disabled={isLoadingChatbotLogs}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-white"
+                >
+                  Refresh Logs
+                </button>
+              </div>
+
+              {isLoadingChatbotLogs ? (
+                <div className="py-8 text-center text-xs text-zinc-500">Loading chat logs...</div>
+              ) : chatbotLogs.length === 0 ? (
+                <div className="py-8 text-center text-xs text-zinc-500">
+                  No visitor chatbot logs recorded yet.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-zinc-800 text-zinc-400">
+                        <th className="py-2.5 px-3">Date</th>
+                        <th className="py-2.5 px-3">Visitor Query</th>
+                        <th className="py-2.5 px-3">Chatbot Reply</th>
+                        <th className="py-2.5 px-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-850">
+                      {chatbotLogs.slice(0, 15).map((log: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-zinc-900/30">
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                            {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold text-white max-w-xs truncate">
+                            {log.userMessage}
+                          </td>
+                          <td className="py-2.5 px-3 text-zinc-400 max-w-sm truncate">
+                            {log.botResponse}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setKnowledgeForm({
+                                  id: '',
+                                  question: log.userMessage,
+                                  answer: '',
+                                  category: 'Experience',
+                                  keywords: log.userMessage.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).join(', '),
+                                });
+                                window.scrollTo({ top: 350, behavior: 'smooth' });
+                              }}
+                              className="px-2.5 py-1 rounded bg-zinc-850 hover:bg-cyan-400 hover:text-black text-[11px] font-semibold text-zinc-300 transition-colors"
+                            >
+                              Train Question
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}

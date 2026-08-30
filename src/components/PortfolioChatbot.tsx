@@ -26,6 +26,108 @@ interface ChatMessage {
   quickActions?: { label: string; action: string }[];
   downloadLink?: { url: string; filename: string };
   links?: { label: string; url: string }[];
+  isStreaming?: boolean;
+}
+
+function formatMessageMarkdown(line: string) {
+  if (!line.trim()) return <div className="h-1" />;
+
+  // Heading check: ### Heading
+  if (line.startsWith('### ')) {
+    return (
+      <p className="font-bold text-cyan-300 text-xs tracking-wide border-b border-zinc-800/80 pb-1 mb-1">
+        {line.replace('### ', '')}
+      </p>
+    );
+  }
+
+  // Bullet point check: • or -
+  const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
+  const cleanLine = isBullet ? line.trim().replace(/^[•-]\s*/, '') : line;
+
+  // Parse bold text **bold**
+  const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
+
+  const formattedContent = parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} className="font-bold text-white">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+
+  if (isBullet) {
+    return (
+      <div className="flex items-start gap-1.5 pl-0.5 text-zinc-200">
+        <span className="text-cyan-400 font-bold text-xs select-none">•</span>
+        <div className="flex-1 leading-relaxed">{formattedContent}</div>
+      </div>
+    );
+  }
+
+  return <p className="text-zinc-200 leading-relaxed">{formattedContent}</p>;
+}
+
+function StreamedMessage({
+  text,
+  isStreaming,
+  onComplete,
+  onLineRendered,
+}: {
+  text: string;
+  isStreaming?: boolean;
+  onComplete?: () => void;
+  onLineRendered?: () => void;
+}) {
+  const lines = React.useMemo(() => text.split('\n'), [text]);
+  const [visibleCount, setVisibleCount] = useState(() => (isStreaming ? 1 : lines.length));
+  const [isFinished, setIsFinished] = useState(() => !isStreaming);
+
+  useEffect(() => {
+    if (!isStreaming || isFinished) return;
+
+    if (visibleCount < lines.length) {
+      const currentLine = lines[visibleCount - 1] || '';
+      // Smooth adaptive cadence: ~70ms for short lines, up to ~180ms for longer lines
+      const delay = Math.min(180, Math.max(70, currentLine.length * 3.5));
+      const timer = setTimeout(() => {
+        setVisibleCount((prev) => {
+          const next = prev + 1;
+          if (next >= lines.length) {
+            setIsFinished(true);
+            onComplete?.();
+          }
+          return next;
+        });
+        onLineRendered?.();
+      }, delay);
+      return () => clearTimeout(timer);
+    } else {
+      setIsFinished(true);
+      onComplete?.();
+    }
+  }, [visibleCount, lines, isStreaming, isFinished, onComplete, onLineRendered]);
+
+  return (
+    <div className="space-y-1">
+      {lines.slice(0, visibleCount).map((line, idx) => (
+        <motion.div
+          key={idx}
+          initial={{ opacity: 0, y: 3 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {formatMessageMarkdown(line)}
+        </motion.div>
+      ))}
+      {!isFinished && isStreaming && (
+        <span className="inline-block w-1.5 h-3 bg-cyan-400 animate-pulse ml-0.5 rounded-sm align-middle" />
+      )}
+    </div>
+  );
 }
 
 interface PortfolioChatbotProps {
@@ -41,6 +143,18 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
   const [inquiryData, setInquiryData] = useState({ name: '', email: '', message: '' });
   const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
   const [inquirySuccess, setInquirySuccess] = useState(false);
+
+  // Persistent Session ID for visitor chat audit logs in PostgreSQL & MongoDB
+  const [sessionId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('skm_chat_session');
+      if (stored) return stored;
+      const created = 'sess_' + Math.random().toString(36).slice(2, 10) + '_' + Date.now();
+      sessionStorage.setItem('skm_chat_session', created);
+      return created;
+    }
+    return 'sess_' + Date.now();
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -77,8 +191,123 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
     const q = rawInput.toLowerCase().trim();
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // 1. Resume / CV query
-    if (q.includes('resume') || q.includes('cv') || q.includes('download')) {
+    // 1. Greetings (hi, hello, hey, namaste, etc.)
+    if (/^\s*(hi|hii|hiii|hello|helo|hey|heyy|howdy|sup|hola|namaste|yo|good\s*(morning|afternoon|evening))\b/i.test(q)) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `Hello! Great to meet you! 😊\n\nI'm **Shubham's AI Portfolio Assistant**. I'm here to help you learn about his full-stack software engineering experience, explore his projects, or connect with him directly.\n\nWhat would you like to know?`,
+        timestamp: time,
+        quickActions: [
+          { label: '⚡ Top Tech Stack', action: 'skills' },
+          { label: '🚀 Featured Projects', action: 'projects' },
+          { label: '📄 Download Resume', action: 'resume' },
+          { label: '📬 Contact Shubham', action: 'contact' },
+        ],
+      };
+    }
+
+    // 2. Small talk / "How are you"
+    if (/\b(how\s+(are\s+you|r\s+u|do\s+you\s+do|is\s+it\s+going)|how's\s+it\s+going|whats?\s+up)\b/i.test(q)) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `I'm doing great, thank you for asking! 😊 Ready to help you discover Shubham's software projects, technical skills, or download his resume.\n\nAre you looking to hire a developer or learn more about his background?`,
+        timestamp: time,
+        quickActions: [
+          { label: '👨‍💻 Who is Shubham?', action: 'who_is_shubham' },
+          { label: '⚡ Top Skills', action: 'skills' },
+          { label: '🚀 View Projects', action: 'projects' },
+          { label: '📄 Download Resume', action: 'resume' },
+        ],
+      };
+    }
+
+    // 3. "Who are you" / "What can you do"
+    if (/\b(who\s+(are\s+you|r\s+u)|what\s+are\s+you|what\s+can\s+you\s+do|your\s+name|introduce\s+yourself)\b/i.test(q)) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `I am an interactive AI assistant built specifically for **Shubham Kumar's developer portfolio**!\n\nI know all about his software development background in **Java, Spring Boot, React, Angular, PostgreSQL, and Cloud**.\n\nYou can ask me questions like:\n• *"What are Shubham's top skills?"*\n• *"Show me his featured projects"*\n• *"What is his educational background?"*\n• *"How can I contact or hire him?"*\n• *"Download resume"*`,
+        timestamp: time,
+        quickActions: [
+          { label: '⚡ Core Skills', action: 'skills' },
+          { label: '🚀 Projects', action: 'projects' },
+          { label: '📄 Download Resume', action: 'resume' },
+          { label: '📬 Contact Info', action: 'contact' },
+        ],
+      };
+    }
+
+    // 4. "Who is Shubham" / About Shubham
+    if (
+      /\b(who\s+is\s+shubham|about\s+shubham|tell\s+me\s+about\s+(shubham|him)|bio|background|profile)\b/i.test(q) ||
+      q === 'who_is_shubham'
+    ) {
+      const bio =
+        content?.about?.bio ||
+        'Shubham Kumar is an enthusiastic and detail-oriented Full Stack Developer specializing in architecting scalable, resilient web applications using Java, Spring Boot, PostgreSQL, Angular, and React.';
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `### 👨‍💻 About Shubham Kumar\n\n${bio}\n\n• **Degrees**: BSc & MSc in Computer Science (Indira University, Pune)\n• **Core Focus**: High-performance backend microservices, modern responsive frontends, and cloud databases.`,
+        timestamp: time,
+        quickActions: [
+          { label: '⚡ Tech Stack', action: 'skills' },
+          { label: '🚀 Projects', action: 'projects' },
+          { label: '📄 Download Resume', action: 'resume' },
+          { label: '📬 Contact Info', action: 'contact' },
+        ],
+      };
+    }
+
+    // 5. Thanks / Appreciation
+    if (/\b(thank|thanks|thx|appreciate|thank\s+you)\b/i.test(q) || /^(good|great|awesome|cool|nice|perfect)$/i.test(q)) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `You're very welcome! 😊 Feel free to ask anything else or reach out to Shubham directly if you have an opportunity or project in mind!`,
+        timestamp: time,
+        quickActions: [
+          { label: '📄 Download Resume', action: 'resume' },
+          { label: '📬 Contact Shubham', action: 'contact' },
+          { label: '🚀 Explore Projects', action: 'projects' },
+        ],
+      };
+    }
+
+    // 6. Goodbye
+    if (/\b(bye|goodbye|see\s+you|cya|take\s+care)\b/i.test(q)) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `Goodbye! Thanks for stopping by Shubham's portfolio. Have a wonderful day! 👋✨`,
+        timestamp: time,
+        quickActions: [
+          { label: '📄 Download Resume Before Leaving', action: 'resume' },
+        ],
+      };
+    }
+
+    // 7. Location & Availability (Strict word phrases to avoid false triggers like 'believe')
+    if (
+      /\b(where\s+(do\s+you|are\s+you|is\s+shubham)\s+(live|located|based)|current\s+location|which\s+city|based\s+in|in\s+pune|open\s+to\s+(work|relocate|relocation)|remote\s+work|notice\s+period)\b/i.test(q)
+    ) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `### 📍 Location & Availability\n\n• **Location**: Pune, Maharashtra, India\n• **Availability**: Actively open for **Full-Time Software Engineer** roles, contract projects, and remote/hybrid positions worldwide.\n• **Notice Period**: Available immediately for promising opportunities!`,
+        timestamp: time,
+        quickActions: [
+          { label: '📬 Hire / Contact', action: 'contact' },
+          { label: '📄 Download Resume', action: 'resume' },
+          { label: '⚡ Core Skills', action: 'skills' },
+        ],
+      };
+    }
+
+    // 8. Resume / CV query
+    if (/\b(resume|cv|curriculum\s+vitae|download\s+resume)\b/i.test(q)) {
       return {
         id: Date.now().toString(),
         sender: 'bot',
@@ -96,20 +325,53 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       };
     }
 
-    // 2. Skills / Technologies query
-    if (
-      q.includes('skill') ||
-      q.includes('tech') ||
-      q.includes('stack') ||
-      q.includes('java') ||
-      q.includes('spring') ||
-      q.includes('angular') ||
-      q.includes('react') ||
-      q.includes('postgres') ||
-      q.includes('docker') ||
-      q.includes('cloud') ||
-      q.includes('language')
-    ) {
+    // 9. Specific Backend Skills (Java, Spring Boot, Microservices)
+    if (/\b(java|spring\s*boot|spring|microservices?|rest\s*apis?|hibernate|jpa)\b/i.test(q)) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `### ☕ Java & Spring Boot Backend Expertise\n\nShubham specializes in building scalable, enterprise-grade backend applications:\n\n• **Core & Advanced Java**: Java 8/11/17/21, OOP, Multithreading, Streams API, Collections, JVM.\n• **Spring Boot**: REST APIs, Microservices Architecture, Spring Data JPA, Spring Security, Hibernate ORM.\n• **Performance & Reliability**: Connection pooling, caching, transaction management, and secure token authorization.`,
+        timestamp: time,
+        quickActions: [
+          { label: '🚀 View Projects', action: 'projects' },
+          { label: '📄 Download Resume', action: 'resume' },
+          { label: '⚡ Full Tech Stack', action: 'skills' },
+        ],
+      };
+    }
+
+    // 10. Specific Frontend Skills (Angular, React, Next.js)
+    if (/\b(angular|react|next\.?js|javascript|typescript|tailwind|frontend|css3?)\b/i.test(q)) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `### ⚛️ Frontend Engineering Expertise\n\nShubham crafts responsive, interactive, high-conversion user interfaces:\n\n• **Angular**: Angular 18, TypeScript, RxJS, modular components, reactive forms, routing.\n• **React & Next.js**: React 19, Next.js 15 App Router, Server Components, SSR, hooks.\n• **Styling & Motion**: Tailwind CSS, CSS3, Framer Motion for smooth 60 FPS animations.`,
+        timestamp: time,
+        quickActions: [
+          { label: '🚀 View Projects', action: 'projects' },
+          { label: '📄 Download Resume', action: 'resume' },
+          { label: '⚡ Full Tech Stack', action: 'skills' },
+        ],
+      };
+    }
+
+    // 11. Database Skills (PostgreSQL, SQL, MongoDB)
+    if (/\b(postgres|postgresql|database|sql|mongodb|mongo|mysql|oracle)\b/i.test(q)) {
+      return {
+        id: Date.now().toString(),
+        sender: 'bot',
+        text: `### 🗄️ Database & Cloud Storage\n\n• **Relational Databases**: PostgreSQL, MySQL, Oracle SQL — index tuning, complex queries, foreign keys, ACID compliance.\n• **NoSQL**: MongoDB with Mongoose schemas.\n• **Cloud Databases**: Neon Tech Serverless PostgreSQL with edge pooling and automated migrations.`,
+        timestamp: time,
+        quickActions: [
+          { label: '🚀 View Projects', action: 'projects' },
+          { label: '📄 Download Resume', action: 'resume' },
+          { label: '⚡ Core Skills', action: 'skills' },
+        ],
+      };
+    }
+
+    // 12. General Skills / Technologies query
+    if (/\b(skills?|tech(\s*stack)?|technologies|tools|languages?|docker|cloud|aws)\b/i.test(q)) {
       const skillsCategories = content?.skills || [];
       let skillsSummary = '';
 
@@ -134,8 +396,8 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       };
     }
 
-    // 3. Projects query
-    if (q.includes('project') || q.includes('work') || q.includes('portfolio') || q.includes('ecommerce') || q.includes('build')) {
+    // 13. Projects query
+    if (/\b(projects?|portfolio(\s*work)?|featured\s*(projects?|work)|showcase|work\s+samples?|ecommerce)\b/i.test(q)) {
       const projects = content?.projects || [];
       let projText = '### 🚀 Featured Engineering Projects\n\n';
 
@@ -164,8 +426,8 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       };
     }
 
-    // 4. Education / Background
-    if (q.includes('education') || q.includes('degree') || q.includes('college') || q.includes('university') || q.includes('study') || q.includes('msc') || q.includes('bsc')) {
+    // 14. Education / Background
+    if (/\b(education|degree|college|university|msc|bsc|study|studies|academics?)\b/i.test(q)) {
       return {
         id: Date.now().toString(),
         sender: 'bot',
@@ -179,16 +441,8 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       };
     }
 
-    // 5. Contact / Hire / Message
-    if (
-      q.includes('contact') ||
-      q.includes('hire') ||
-      q.includes('email') ||
-      q.includes('phone') ||
-      q.includes('message') ||
-      q.includes('reach') ||
-      q.includes('interview')
-    ) {
+    // 15. Contact / Hire / Message
+    if (/\b(contact|hire|email|phone|call|message|reach\s+out|interview|schedule)\b/i.test(q)) {
       return {
         id: Date.now().toString(),
         sender: 'bot',
@@ -202,8 +456,8 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       };
     }
 
-    // 6. Experience query
-    if (q.includes('experience') || q.includes('career') || q.includes('history')) {
+    // 16. Experience query
+    if (/\b(experience|career|history|background)\b/i.test(q)) {
       const expCount = content?.hero?.yearsExperience || '2+';
       return {
         id: Date.now().toString(),
@@ -218,22 +472,22 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       };
     }
 
-    // Default fallback response
+    // 17. Courteous Grounded Fallback for Out-of-Domain / Random Questions
     return {
       id: Date.now().toString(),
       sender: 'bot',
-      text: `Thanks for asking! Shubham is a Full Stack Developer specializing in **Java, Spring Boot, Angular, React, Next.js, and PostgreSQL**.\n\nYou can click any of the options below or ask me about specific skills, projects, or credentials:`,
+      text: `I'm an AI assistant dedicated specifically to **Shubham Kumar's developer portfolio, software projects, and engineering capabilities**! 😊\n\nI don't have information on topics outside of Shubham's portfolio, but I'd love to help you with:\n• *"What is Shubham's tech stack?"*\n• *"Show me his featured projects"*\n• *"What is his education & background?"*\n• *"How can I download his resume or contact him?"*`,
       timestamp: time,
       quickActions: [
-        { label: '⚡ Tech Stack', action: 'skills' },
-        { label: '🚀 Projects', action: 'projects' },
+        { label: '⚡ Top Tech Stack', action: 'skills' },
+        { label: '🚀 Featured Projects', action: 'projects' },
         { label: '📄 Download Resume', action: 'resume' },
         { label: '📬 Contact & Hire', action: 'contact' },
       ],
     };
   };
 
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputMessage).trim();
     if (!query) return;
 
@@ -251,11 +505,85 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate natural thinking delay
+    // 1. If it's a greeting, small talk, or polite conversational cue, answer instantly with local intelligence
+    const qLower = query.toLowerCase().trim();
+    const isConversationalCue = /^\s*(hi|hii|hiii|hello|helo|hey|heyy|howdy|sup|hola|namaste|yo|good\s*(morning|afternoon|evening)|how\s+are\s+you|whats?\s+up|thank|thanks|bye|goodbye)\b/i.test(qLower);
+
+    if (isConversationalCue) {
+      const botResponse = { ...generateResponse(query), isStreaming: true };
+      setTimeout(() => {
+        setMessages((prev) => [...prev, botResponse]);
+        setIsTyping(false);
+      }, 350);
+
+      // Log conversation to database
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          sessionId,
+          botResponse: botResponse.text,
+          intent: 'greeting',
+        }),
+      }).catch(() => {});
+      return;
+    }
+
+    try {
+      // 2. Check dynamic database knowledge base with high precision
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          sessionId,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.hasCustomAnswer && data?.answer) {
+          const customResponse: ChatMessage = {
+            id: Date.now().toString(),
+            sender: 'bot',
+            text: data.answer,
+            timestamp: time,
+            isStreaming: true,
+            quickActions: [
+              { label: '⚡ Top Tech Stack', action: 'skills' },
+              { label: '🚀 Featured Projects', action: 'projects' },
+              { label: '📄 Download Resume', action: 'resume' },
+              { label: '📬 Contact Shubham', action: 'contact' },
+            ],
+          };
+          setMessages((prev) => [...prev, customResponse]);
+          setIsTyping(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Dynamic knowledge lookup fallback:', err);
+    }
+
+    // 2. Built-in conversational intelligence
     setTimeout(() => {
-      const botResponse = generateResponse(query);
+      const botResponse = { ...generateResponse(query), isStreaming: true };
       setMessages((prev) => [...prev, botResponse]);
       setIsTyping(false);
+
+      // Async log to DB
+      try {
+        fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: query,
+            sessionId,
+            botResponse: botResponse.text,
+          }),
+        }).catch(() => {});
+      } catch (_) {}
     }, 450);
   };
 
@@ -270,6 +598,7 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       resume: 'I would like to download Shubham’s resume.',
       education: 'What is Shubham’s educational background?',
       contact: 'How can I contact or hire Shubham?',
+      who_is_shubham: 'Tell me about Shubham Kumar and his background.',
     };
 
     const promptText = actionPrompts[action] || action;
@@ -350,8 +679,8 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
                 setHasInteracted(true);
               }}
             >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>Ask Shubham&apos;s AI</span>
+              <Bot className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Ask Portfolio Assistant</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -411,14 +740,14 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
 
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                    <span>Shubham&apos;s AI Assistant</span>
+                    <span>Shubham&apos;s Portfolio Assistant</span>
                     <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono">
-                      v1.0
+                      Verified
                     </span>
                   </h3>
                   <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>Online • Instant Portfolio Answers</span>
+                    <span>Online • Grounded on Verified Resume &amp; Projects</span>
                   </p>
                 </div>
               </div>
@@ -455,14 +784,24 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
                         : 'bg-zinc-900 border border-zinc-800/90 text-zinc-200 rounded-bl-none'
                     }`}
                   >
-                    {/* Render message text with basic bold support */}
-                    <div>
-                      {msg.text.split('\n').map((line, idx) => (
-                        <p key={idx} className={idx > 0 ? 'mt-1.5' : ''}>
-                          {line}
-                        </p>
-                      ))}
-                    </div>
+                    {/* Render message text with smooth line-by-line reveal for bot and instant for user */}
+                    {msg.sender === 'user' ? (
+                      <div>
+                        {msg.text.split('\n').map((line, idx) => (
+                          <p key={idx} className={idx > 0 ? 'mt-1.5' : ''}>
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <StreamedMessage
+                        text={msg.text}
+                        isStreaming={msg.isStreaming}
+                        onLineRendered={() => {
+                          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                      />
+                    )}
 
                     {/* Download Resume Button right inside message */}
                     {msg.downloadLink && (

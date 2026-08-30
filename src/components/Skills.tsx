@@ -85,13 +85,16 @@ export default function Skills({ categories: passedCategories }: SkillsProps) {
     >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <p className="text-xs uppercase tracking-widest text-zinc-400 font-bold mb-2">My Arsenal</p>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 text-xs font-mono tracking-wider mb-3 backdrop-blur-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
+            <span>02 / TECHNICAL ARTIFACTS &amp; STACK</span>
+          </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight animate-text-shimmer">
-            Technical Skills
+            Technical Stack
           </h2>
           <div className="w-16 h-1 bg-white mx-auto mt-3 rounded-full" />
           <p className="text-zinc-400 text-sm sm:text-base mt-4">
-            Hands-on expertise across full stack application development, server architectures, and relational databases.
+            Hands-on engineering proficiency across enterprise Java microservices, modern frontends, and high-speed databases.
           </p>
         </div>
 

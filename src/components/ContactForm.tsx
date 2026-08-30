@@ -61,13 +61,16 @@ export default function ContactForm() {
     >
       <div className="max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <p className="text-xs uppercase tracking-widest text-zinc-400 font-bold mb-2">Get In Touch</p>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 text-xs font-mono tracking-wider mb-3 backdrop-blur-md">
+            <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
+            <span>05 / DIRECT INQUIRIES &amp; CONTACT</span>
+          </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight animate-text-shimmer">
-            Contact Me
+            Get In Touch
           </h2>
           <div className="w-16 h-1 bg-white mx-auto mt-3 rounded-full" />
           <p className="text-zinc-400 text-sm sm:text-base mt-4">
-            Have a project, role opportunity, or question in mind? Send a message and it will be delivered directly to my inbox and database.
+            Available for Full-Time Software Engineering roles, contract architecture, or technical inquiries.
           </p>
         </div>
 
@@ -76,10 +79,10 @@ export default function ContactForm() {
           <div className="lg:col-span-5 space-y-6">
             <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-6">
               <h3 className="text-2xl font-bold text-white">
-                Let&apos;s Build Something <span className="text-zinc-400 font-normal">Extraordinary</span>
+                Engineering Opportunities <span className="text-zinc-400 font-normal">&amp; Collaboration</span>
               </h3>
               <p className="text-sm text-zinc-300 leading-relaxed">
-                I am currently open to full-time software developer opportunities, contract engagements, and innovative full stack development collaborations.
+                Open to Full-Time Software Engineer positions, distributed backend engineering, and modern full-stack web application development.
               </p>
 
               <address className="not-italic space-y-4 pt-2">

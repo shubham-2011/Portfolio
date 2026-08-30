@@ -307,16 +307,16 @@ export default function Projects({ projects: passedProjects }: ProjectsProps) {
 
       {/* Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 relative z-10 text-center">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-semibold uppercase tracking-widest mb-3">
-          <Sparkles className="w-3.5 h-3.5 text-white" />
-          <span>Interactive 3D Showcase</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 text-xs font-mono tracking-wider mb-3 backdrop-blur-md">
+          <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
+          <span>03 / SELECTED WORK &amp; ARCHITECTURE</span>
         </div>
 
         <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight animate-text-shimmer">
-          Selected Work
+          Production Systems
         </h2>
         <p className="text-xs sm:text-sm text-zinc-400 mt-2">
-          Squarespace 3D Curved Cylinder &bull; Slide with arrows, swipe, or click side cards
+          Enterprise web applications, microservices, and client platforms &bull; Slide with arrows or swipe
         </p>
       </div>
 

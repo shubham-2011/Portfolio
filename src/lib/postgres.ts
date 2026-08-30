@@ -557,5 +557,307 @@ export async function deleteMediaFromPostgres(filename: string) {
   }
 }
 
+// ============================================================================
+// CHAT LOGS STORAGE (MONGODB & POSTGRESQL DUAL PERSISTENCE)
+// ============================================================================
+let chatLogsTableInitialized = false;
+
+async function ensureChatLogsTable(clientPool: Pool) {
+  if (chatLogsTableInitialized) return;
+
+  const query = `
+    CREATE TABLE IF NOT EXISTS portfolio_chat_logs (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(255) NOT NULL,
+      user_message TEXT NOT NULL,
+      bot_response TEXT NOT NULL,
+      intent VARCHAR(100) DEFAULT 'general',
+      ip_address VARCHAR(100),
+      user_agent VARCHAR(255),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  try {
+    await clientPool.query(query);
+    chatLogsTableInitialized = true;
+  } catch (err) {
+    console.error('Error ensuring portfolio_chat_logs table exists:', err);
+  }
+}
+
+export async function saveChatToPostgres(data: {
+  sessionId: string;
+  userMessage: string;
+  botResponse: string;
+  intent?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  if (!pool) return null;
+  try {
+    await ensureChatLogsTable(pool);
+    const query = `
+      INSERT INTO portfolio_chat_logs (session_id, user_message, bot_response, intent, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, created_at;
+    `;
+    const res = await pool.query(query, [
+      data.sessionId,
+      data.userMessage,
+      data.botResponse,
+      data.intent || 'general',
+      data.ipAddress || '127.0.0.1',
+      data.userAgent || 'Unknown',
+    ]);
+    return res.rows[0];
+  } catch (err) {
+    console.error('Error saving chat to PostgreSQL:', err);
+    return null;
+  }
+}
+
+export async function getChatLogsFromPostgres(limit = 100) {
+  if (!pool) return [];
+  try {
+    await ensureChatLogsTable(pool);
+    const query = `
+      SELECT id, session_id, user_message, bot_response, intent, ip_address, user_agent, created_at
+      FROM portfolio_chat_logs
+      ORDER BY created_at DESC
+      LIMIT $1;
+    `;
+    const res = await pool.query(query, [limit]);
+    return res.rows;
+  } catch (err) {
+    console.error('Error getting chat logs from PostgreSQL:', err);
+    return [];
+  }
+}
+
+// ============================================================================
+// CHATBOT KNOWLEDGE BASE (TRAINING DATA DUAL-PERSISTENCE)
+// ============================================================================
+let knowledgeTableInitialized = false;
+
+async function ensureChatbotKnowledgeTable(clientPool: Pool) {
+  if (knowledgeTableInitialized) return;
+
+  const query = `
+    CREATE TABLE IF NOT EXISTS portfolio_chatbot_knowledge (
+      id SERIAL PRIMARY KEY,
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      category VARCHAR(50) DEFAULT 'General',
+      keywords TEXT[] DEFAULT '{}',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  try {
+    await clientPool.query(query);
+    knowledgeTableInitialized = true;
+  } catch (err) {
+    console.error('Error ensuring portfolio_chatbot_knowledge table exists:', err);
+  }
+}
+
+export async function saveChatbotKnowledgeToPostgres(data: {
+  id?: number;
+  question: string;
+  answer: string;
+  category?: string;
+  keywords?: string[];
+}) {
+  if (!pool) return null;
+  try {
+    await ensureChatbotKnowledgeTable(pool);
+    if (data.id) {
+      const updateQuery = `
+        UPDATE portfolio_chatbot_knowledge
+        SET question = $1, answer = $2, category = $3, keywords = $4, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $5
+        RETURNING id, question, answer, category, keywords, created_at, updated_at;
+      `;
+      const res = await pool.query(updateQuery, [
+        data.question.trim(),
+        data.answer.trim(),
+        data.category || 'General',
+        data.keywords || [],
+        data.id,
+      ]);
+      return res.rows[0];
+    } else {
+      const insertQuery = `
+        INSERT INTO portfolio_chatbot_knowledge (question, answer, category, keywords)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, question, answer, category, keywords, created_at, updated_at;
+      `;
+      const res = await pool.query(insertQuery, [
+        data.question.trim(),
+        data.answer.trim(),
+        data.category || 'General',
+        data.keywords || [],
+      ]);
+      return res.rows[0];
+    }
+  } catch (err) {
+    console.error('Error saving chatbot knowledge to PostgreSQL:', err);
+    return null;
+  }
+}
+
+export async function getChatbotKnowledgeFromPostgres() {
+  if (!pool) return [];
+  try {
+    await ensureChatbotKnowledgeTable(pool);
+    const query = `
+      SELECT id, question, answer, category, keywords, created_at, updated_at
+      FROM portfolio_chatbot_knowledge
+      ORDER BY id DESC;
+    `;
+    const res = await pool.query(query);
+    return res.rows;
+  } catch (err) {
+    console.error('Error getting chatbot knowledge from PostgreSQL:', err);
+    return [];
+  }
+}
+
+export async function deleteChatbotKnowledgeFromPostgres(id: number) {
+  if (!pool) return false;
+  try {
+    await ensureChatbotKnowledgeTable(pool);
+    const query = `DELETE FROM portfolio_chatbot_knowledge WHERE id = $1;`;
+    await pool.query(query, [id]);
+    return true;
+  } catch (err) {
+    console.error('Error deleting chatbot knowledge from PostgreSQL:', err);
+    return false;
+  }
+}
+
+// ============================================================================
+// 🧠 RAG VECTOR EMBEDDINGS (SEMANTIC CHUNK PERSISTENCE & SIMILARITY SEARCH)
+// ============================================================================
+let embeddingsTableInitialized = false;
+
+export async function ensurePortfolioEmbeddingsTable(clientPool: Pool) {
+  if (embeddingsTableInitialized) return;
+
+  // Try enabling pgvector if available on Neon
+  try {
+    await clientPool.query('CREATE EXTENSION IF NOT EXISTS vector;');
+  } catch (_) {
+    // Falls back gracefully to native float8[] array storage
+  }
+
+  const query = `
+    CREATE TABLE IF NOT EXISTS portfolio_embeddings (
+      id SERIAL PRIMARY KEY,
+      chunk_id VARCHAR(120) UNIQUE NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      category VARCHAR(50) DEFAULT 'General',
+      content TEXT NOT NULL,
+      embedding float8[] NOT NULL,
+      metadata JSONB DEFAULT '{}',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  try {
+    await clientPool.query(query);
+    embeddingsTableInitialized = true;
+  } catch (err) {
+    console.error('Error ensuring portfolio_embeddings table exists:', err);
+  }
+}
+
+export interface RAGChunk {
+  chunkId: string;
+  title: string;
+  category: string;
+  content: string;
+  embedding: number[];
+  metadata?: Record<string, any>;
+}
+
+export async function saveEmbeddingChunksToPostgres(chunks: RAGChunk[]) {
+  if (!pool || chunks.length === 0) return 0;
+  try {
+    await ensurePortfolioEmbeddingsTable(pool);
+
+    let saved = 0;
+    for (const chunk of chunks) {
+      const query = `
+        INSERT INTO portfolio_embeddings (chunk_id, title, category, content, embedding, metadata, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+        ON CONFLICT (chunk_id) DO UPDATE SET
+          title = EXCLUDED.title,
+          category = EXCLUDED.category,
+          content = EXCLUDED.content,
+          embedding = EXCLUDED.embedding,
+          metadata = EXCLUDED.metadata,
+          updated_at = CURRENT_TIMESTAMP;
+      `;
+      await pool.query(query, [
+        chunk.chunkId,
+        chunk.title,
+        chunk.category || 'General',
+        chunk.content,
+        chunk.embedding,
+        JSON.stringify(chunk.metadata || {}),
+      ]);
+      saved++;
+    }
+    return saved;
+  } catch (err) {
+    console.error('Error saving embedding chunks to PostgreSQL:', err);
+    return 0;
+  }
+}
+
+export async function getAllEmbeddingChunksFromPostgres(): Promise<RAGChunk[]> {
+  if (!pool) return [];
+  try {
+    await ensurePortfolioEmbeddingsTable(pool);
+    const query = `
+      SELECT chunk_id, title, category, content, embedding, metadata
+      FROM portfolio_embeddings;
+    `;
+    const res = await pool.query(query);
+    return res.rows.map((r) => ({
+      chunkId: r.chunk_id,
+      title: r.title,
+      category: r.category,
+      content: r.content,
+      embedding: Array.isArray(r.embedding) ? r.embedding.map(Number) : [],
+      metadata: r.metadata || {},
+    }));
+  } catch (err) {
+    console.error('Error fetching all embedding chunks:', err);
+    return [];
+  }
+}
+
+export async function getEmbeddingStatsFromPostgres() {
+  if (!pool) return { count: 0, categories: [], lastUpdated: null };
+  try {
+    await ensurePortfolioEmbeddingsTable(pool);
+    const countRes = await pool.query('SELECT COUNT(*) as total, MAX(updated_at) as last_updated FROM portfolio_embeddings;');
+    const catRes = await pool.query('SELECT category, COUNT(*) as count FROM portfolio_embeddings GROUP BY category;');
+
+    return {
+      count: parseInt(countRes.rows[0]?.total || '0', 10),
+      lastUpdated: countRes.rows[0]?.last_updated || null,
+      categories: catRes.rows,
+    };
+  } catch (err) {
+    return { count: 0, categories: [], lastUpdated: null };
+  }
+}
+
 export default pool;
 
