@@ -20,47 +20,79 @@ interface KnowledgeGenerationOptions {
 type GenerationResult = {
   answer: string;
   sources: string[];
-  provider: 'gemini-2.5-flash-lite' | 'generation-unavailable';
+  provider: 'gemini-flash' | 'gemini-2.5-flash-lite' | 'generation-unavailable';
 };
 
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
-const GEMINI_TIMEOUT_MS = 8_000;
+const GEMINI_MODELS = [
+  process.env.GEMINI_MODEL,
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+  'gemini-3.7-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-1.5-flash',
+].filter(Boolean) as string[];
+
+const GEMINI_TIMEOUT_MS = 10_000;
 const GEMINI_MAX_ATTEMPTS = 2;
 const GENERATION_UNAVAILABLE_MESSAGE = `I'm temporarily unable to generate a portfolio answer right now. Please try again in a moment or contact Shubham directly at shubhammisra800@gmail.com.`;
 
 function getGeminiText(data: any): string | null {
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  return typeof text === 'string' && text.trim() ? text.trim() : null;
+  const parts = data?.candidates?.[0]?.content?.parts;
+  if (Array.isArray(parts)) {
+    const textParts = parts
+      .filter((p: any) => typeof p?.text === 'string' && !p.thought)
+      .map((p: any) => p.text.trim())
+      .filter(Boolean);
+    if (textParts.length > 0) return textParts.join('\n\n');
+    if (typeof parts[0]?.text === 'string') return parts[0].text.trim();
+  }
+  const directText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  return typeof directText === 'string' && directText.trim() ? directText.trim() : null;
 }
 
-async function generateWithGemini(apiKey: string, prompt: string): Promise<string | null> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+async function generateWithGemini(
+  apiKey: string,
+  prompt: string,
+  config?: { temperature?: number; maxOutputTokens?: number }
+): Promise<string | null> {
   const requestBody = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 300 },
+    generationConfig: {
+      temperature: config?.temperature ?? 0.25,
+      maxOutputTokens: config?.maxOutputTokens ?? 1000,
+    },
   };
 
-  for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt++) {
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
-      });
-      if (response.ok) {
-        const answer = getGeminiText(await response.json());
-        if (answer) return answer;
-        console.warn('Gemini generation returned no text.');
-        return null;
-      }
+  for (const modelName of GEMINI_MODELS) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt++) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+        });
+        if (response.ok) {
+          const answer = getGeminiText(await response.json());
+          if (answer) return answer;
+          console.warn(`Gemini model ${modelName} returned no text.`);
+          return null;
+        }
 
-      const retryable = response.status === 429 || response.status >= 500;
-      console.warn(`Gemini generation failed with HTTP ${response.status} (attempt ${attempt}/${GEMINI_MAX_ATTEMPTS}).`);
-      if (!retryable || attempt === GEMINI_MAX_ATTEMPTS) return null;
-    } catch (err) {
-      console.warn(`Gemini generation request failed (attempt ${attempt}/${GEMINI_MAX_ATTEMPTS}).`, err);
-      if (attempt === GEMINI_MAX_ATTEMPTS) return null;
+        const isNotFound = response.status === 404;
+        const retryable = response.status === 429 || response.status >= 500;
+        console.warn(`Gemini (${modelName}) request failed with HTTP ${response.status} (attempt ${attempt}/${GEMINI_MAX_ATTEMPTS}).`);
+
+        if (isNotFound) {
+          // Model name not available in current API tier/region, fall back to next model candidate
+          break;
+        }
+        if (!retryable || attempt === GEMINI_MAX_ATTEMPTS) break;
+      } catch (err) {
+        console.warn(`Gemini (${modelName}) request exception (attempt ${attempt}/${GEMINI_MAX_ATTEMPTS}):`, err);
+        if (attempt === GEMINI_MAX_ATTEMPTS) break;
+      }
     }
   }
 
@@ -115,10 +147,23 @@ ${query}
 Generate Shubham's answer now.`;
 
     const answer = await generateWithGemini(apiKey, prompt);
-    if (answer) return { answer, sources, provider: 'gemini-2.5-flash-lite' };
+    if (answer) return { answer, sources, provider: 'gemini-flash' };
   }
 
-  return { answer: GENERATION_UNAVAILABLE_MESSAGE, sources, provider: 'generation-unavailable' };
+  // Fallback to older deterministic RAG model when Gemini token/quota ends
+  if (entries.length > 0) {
+    return {
+      answer: entries[0].answer,
+      sources,
+      provider: 'generation-unavailable',
+    };
+  }
+
+  return {
+    answer: `I don't have that specific information in Shubham's portfolio records.\n\nYou can reach Shubham directly:\n• **Phone / WhatsApp**: [+91 9322887529](tel:+919322887529)\n• **Email**: [shubhammisra800@gmail.com](mailto:shubhammisra800@gmail.com)\n\nYou can also leave a message using the contact form on this website!`,
+    sources,
+    provider: 'generation-unavailable',
+  };
 }
 
 export async function generateRAGResponse({
@@ -135,7 +180,7 @@ export async function generateRAGResponse({
     .map((c, i) => `[Source ${i + 1}: ${c.chunk.title}]\n${c.chunk.content}`)
     .join('\n\n');
 
-  // 1. Google Gemini 1.5 Flash Generation
+  // 1. Google Gemini Flash Generation
   if (apiKey && validChunks.length > 0) {
     try {
       const systemInstruction = `You are a Retrieval-Augmented Generation assistant representing Shubham Kumar's Full Stack Developer Portfolio. You answer strictly using the CONTEXT provided below, which was retrieved from a verified knowledge base.
@@ -144,20 +189,17 @@ Follow these strict rules:
 
 1. GROUNDING
    - Answer only from the given CONTEXT. Do not use outside knowledge unless the user explicitly asks for it.
-   - If the CONTEXT does not contain enough information to answer, state plainly that the verified portfolio does not contain this information instead of guessing or filling gaps.
+   - If the CONTEXT does not contain enough information to answer, state plainly:
+     "I don't have that specific information in Shubham's portfolio records. You can contact Shubham directly at +91 9322887529 or shubhammisra800@gmail.com, or leave a message in the contact form!" instead of guessing.
 
 2. CITATION
-   - Attribute factual claims to the source chunk where appropriate (e.g. citing project names or verified work history).
-   - Do not merge facts from different sources into one uncited claim.
+   - Attribute factual claims to the source chunk where appropriate.
 
-3. CONFLICT HANDLING
-   - If retrieved chunks disagree, surface the difference clearly instead of silently picking one version.
+3. SCOPE CONTROL
+   - If the query is out of scope or unknown, state that clearly and provide Shubham's direct contact details (+91 9322887529, shubhammisra800@gmail.com) and mention the contact form.
 
-4. SCOPE CONTROL
-   - If the query is out of scope for Shubham's portfolio (e.g., general trivia, unrelated domains), state that clearly and offer to answer questions about Shubham's tech stack (Java, Spring Boot, React, Angular, PostgreSQL) or provide his resume.
-
-5. FORMAT
-   - Default to concise, professional prose with clean markdown bolding and bullet points. Use lists or tables only when the query structure calls for it.`;
+4. FORMAT
+   - Default to concise, professional prose.`;
 
       const userPrompt = `CONTEXT:
 ${contextText}
@@ -168,15 +210,62 @@ ${query}
 Answer strictly based on the CONTEXT above:`;
 
       const text = await generateWithGemini(apiKey, `${systemInstruction}\n\n${userPrompt}`);
-      if (text) return { answer: text, sources, provider: 'gemini-2.5-flash-lite' };
+      if (text) return { answer: text, sources, provider: 'gemini-flash' };
     } catch (err) {
       console.warn('Gemini RAG generation exception.', err);
     }
   }
 
+  // Fallback to older deterministic RAG model when Gemini token/quota ends
+  if (validChunks.length > 0) {
+    return {
+      answer: validChunks[0].chunk.content,
+      sources,
+      provider: 'generation-unavailable',
+    };
+  }
+
   return {
-    answer: GENERATION_UNAVAILABLE_MESSAGE,
+    answer: `I don't have that specific information in Shubham's portfolio records.\n\nYou can reach Shubham directly:\n• **Phone / WhatsApp**: [+91 9322887529](tel:+919322887529)\n• **Email**: [shubhammisra800@gmail.com](mailto:shubhammisra800@gmail.com)\n\nYou can also leave a message using the contact form on this website!`,
     sources,
     provider: 'generation-unavailable',
   };
+}
+
+/** Generates dynamic, varied, natural conversational answers for greetings or general queries */
+export async function generateConversationalResponse(query: string): Promise<GenerationResult> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return { answer: '', sources: [], provider: 'generation-unavailable' };
+  }
+
+  const prompt = `You are the AI Assistant for Shubham Kumar's developer portfolio.
+
+Visitor's input: "${query}"
+
+INSTRUCTIONS:
+1. GREETINGS (hi, hello, hey, what's up, etc.):
+   - Give a warm, natural, and charismatic 1-2 sentence response.
+   - DO NOT recite a repetitive laundry list of skills or technologies.
+   - Be varied, fresh, and friendly every time. Ask how you can help them explore Shubham's work, projects, or background.
+
+2. QUESTIONS ABOUT SHUBHAM / CONTACT / HIRING:
+   - Speak accurately and conversationally.
+   - Shubham is an experienced Full Stack Software Engineer (Java, Spring Boot, React, Angular, PostgreSQL).
+   - If they ask how to contact him:
+     • Phone / WhatsApp: +91 9322887529
+     • Email: shubhammisra800@gmail.com
+     • Mention they can also leave a message using the contact form on this page.
+
+3. UNKNOWN / OUT-OF-SCOPE QUESTIONS:
+   - Politely say you specialize in Shubham's engineering portfolio, and provide his direct email (shubhammisra800@gmail.com) and phone (+91 9322887529) if they'd like to get in touch.
+
+4. TONE:
+   - Friendly, modern, confident, and professional. Never robotic or formulaic.`;
+
+  const answer = await generateWithGemini(apiKey, prompt, { temperature: 0.75 });
+  if (answer) {
+    return { answer, sources: ['Portfolio Assistant'], provider: 'gemini-flash' };
+  }
+  return { answer: '', sources: [], provider: 'generation-unavailable' };
 }

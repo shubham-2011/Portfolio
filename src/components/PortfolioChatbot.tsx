@@ -45,8 +45,15 @@ function formatMessageMarkdown(line: string) {
   const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
   const cleanLine = isBullet ? line.trim().replace(/^[•-]\s*/, '') : line;
 
+  // Auto-close open bold markdown if streaming in the middle of bold text
+  let safeLine = cleanLine;
+  const boldCount = (safeLine.match(/\*\*/g) || []).length;
+  if (boldCount % 2 !== 0) {
+    safeLine += '**';
+  }
+
   // Parse bold text **bold**
-  const parts = cleanLine.split(/(\*\*.*?\*\*)/g);
+  const parts = safeLine.split(/(\*\*.*?\*\*)/g);
 
   const formattedContent = parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -82,49 +89,49 @@ function StreamedMessage({
   onComplete?: () => void;
   onLineRendered?: () => void;
 }) {
-  const lines = React.useMemo(() => text.split('\n'), [text]);
-  const [visibleCount, setVisibleCount] = useState(() => (isStreaming ? 1 : lines.length));
+  const [displayedLength, setDisplayedLength] = useState(() => (isStreaming ? 0 : text.length));
   const [isFinished, setIsFinished] = useState(() => !isStreaming);
 
   useEffect(() => {
-    if (!isStreaming || isFinished) return;
-
-    if (visibleCount < lines.length) {
-      const currentLine = lines[visibleCount - 1] || '';
-      // Smooth adaptive cadence: ~70ms for short lines, up to ~180ms for longer lines
-      const delay = Math.min(180, Math.max(70, currentLine.length * 3.5));
-      const timer = setTimeout(() => {
-        setVisibleCount((prev) => {
-          const next = prev + 1;
-          if (next >= lines.length) {
-            setIsFinished(true);
-            onComplete?.();
-          }
-          return next;
-        });
-        onLineRendered?.();
-      }, delay);
-      return () => clearTimeout(timer);
-    } else {
-      setIsFinished(true);
-      onComplete?.();
+    if (!isStreaming || isFinished) {
+      setDisplayedLength(text.length);
+      return;
     }
-  }, [visibleCount, lines, isStreaming, isFinished, onComplete, onLineRendered]);
+
+    let currentIndex = 0;
+    // Ultra-smooth typewriter streaming: ~2-3 chars per frame (18ms)
+    const stepSize = Math.max(2, Math.floor(text.length / 90));
+    const intervalTime = 16;
+
+    const timer = setInterval(() => {
+      currentIndex += stepSize;
+      if (currentIndex >= text.length) {
+        setDisplayedLength(text.length);
+        setIsFinished(true);
+        clearInterval(timer);
+        onComplete?.();
+        onLineRendered?.();
+      } else {
+        setDisplayedLength(currentIndex);
+        onLineRendered?.();
+      }
+    }, intervalTime);
+
+    return () => clearInterval(timer);
+  }, [text, isStreaming, isFinished, onComplete, onLineRendered]);
+
+  const currentText = text.slice(0, displayedLength);
+  const lines = currentText.split('\n');
 
   return (
-    <div className="space-y-1">
-      {lines.slice(0, visibleCount).map((line, idx) => (
-        <motion.div
-          key={idx}
-          initial={{ opacity: 0, y: 3 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        >
+    <div className="space-y-1.5 leading-relaxed">
+      {lines.map((line, idx) => (
+        <div key={idx}>
           {formatMessageMarkdown(line)}
-        </motion.div>
+        </div>
       ))}
       {!isFinished && isStreaming && (
-        <span className="inline-block w-1.5 h-3 bg-cyan-400 animate-pulse ml-0.5 rounded-sm align-middle" />
+        <span className="inline-block w-2 h-3.5 bg-cyan-400 animate-pulse ml-0.5 rounded-sm align-middle shadow-sm shadow-cyan-400/80" />
       )}
     </div>
   );
@@ -504,33 +511,8 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
     setInputMessage('');
     setIsTyping(true);
 
-    // 1. If it's a greeting, small talk, or polite conversational cue, answer instantly with local intelligence
-    const qLower = query.toLowerCase().trim();
-    const isConversationalCue = /^\s*(hi|hii|hiii|hello|helo|hey|heyy|howdy|sup|hola|namaste|yo|good\s*(morning|afternoon|evening)|how\s+are\s+you|whats?\s+up|thank|thanks|bye|goodbye)\b/i.test(qLower);
-
-    if (isConversationalCue) {
-      const botResponse = { ...generateResponse(query), isStreaming: true };
-      setTimeout(() => {
-        setMessages((prev) => [...prev, botResponse]);
-        setIsTyping(false);
-      }, 350);
-
-      // Log conversation to database
-      fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: query,
-          sessionId,
-          botResponse: botResponse.text,
-          intent: 'greeting',
-        }),
-      }).catch(() => {});
-      return;
-    }
-
     try {
-      // 2. Check dynamic database knowledge base with high precision
+      // Send query to AI RAG backend
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -543,18 +525,26 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       if (res.ok) {
         const data = await res.json();
         if (data?.hasCustomAnswer && data?.answer) {
+          const isContactRelated = (data.category === 'Contact' || data.answer.includes('shubhammisra800@gmail.com'));
           const customResponse: ChatMessage = {
             id: Date.now().toString(),
             sender: 'bot',
             text: data.answer,
             timestamp: time,
             isStreaming: true,
-            quickActions: [
-              { label: '⚡ Top Tech Stack', action: 'skills' },
-              { label: '🚀 Featured Projects', action: 'projects' },
-              { label: '📄 Download Resume', action: 'resume' },
-              { label: '📬 Contact Shubham', action: 'contact' },
-            ],
+            quickActions: isContactRelated
+              ? [
+                  { label: '📬 Leave a Message (Form)', action: 'leave_message' },
+                  { label: '📄 Download Resume', action: 'resume' },
+                  { label: '⚡ Core Tech Stack', action: 'skills' },
+                  { label: '🚀 Featured Projects', action: 'projects' },
+                ]
+              : [
+                  { label: '⚡ Top Tech Stack', action: 'skills' },
+                  { label: '🚀 Featured Projects', action: 'projects' },
+                  { label: '📄 Download Resume', action: 'resume' },
+                  { label: '📬 Contact Shubham', action: 'contact' },
+                ],
           };
           setMessages((prev) => [...prev, customResponse]);
           setIsTyping(false);
@@ -856,9 +846,9 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
                 </div>
               ))}
 
-              {/* Typing indicator */}
+              {/* Minimalist sleek typing indicator */}
               {isTyping && (
-                <div className="flex items-center gap-1.5 p-3 rounded-2xl bg-zinc-900 border border-zinc-800 w-16 text-zinc-400">
+                <div className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400 w-14 shadow-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"></span>
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]"></span>
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]"></span>

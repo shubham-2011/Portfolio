@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Fall back to vector RAG only when no trained entry is relevant.
-    if (!matchedAnswer && q.length >= 5) {
+    if (!matchedAnswer && q.length >= 4) {
       try {
         const { retrieveRelevantChunks } = await import('@/lib/rag/indexer');
         const { generateRAGResponse } = await import('@/lib/rag/generator');
@@ -109,6 +109,28 @@ export async function POST(request: NextRequest) {
       } catch (ragErr) {
         console.warn('RAG retrieval fallback notice:', ragErr);
       }
+    }
+
+    // 4. Dynamic conversational response for greetings / open queries via Gemini
+    if (!matchedAnswer && process.env.GEMINI_API_KEY) {
+      try {
+        const { generateConversationalResponse } = await import('@/lib/rag/generator');
+        const convResult = await generateConversationalResponse(userMessage);
+        if (convResult.answer) {
+          matchedAnswer = convResult.answer;
+          matchedCategory = 'Conversational';
+          ragSources = convResult.sources;
+        }
+      } catch (convErr) {
+        console.warn('Conversational AI generation notice:', convErr);
+      }
+    }
+
+    // 5. Ultimate fallback if query has no matching answer in knowledge base
+    if (!matchedAnswer) {
+      matchedAnswer = `I don't have that specific information in Shubham's verified portfolio records.\n\nYou can reach Shubham directly:\n• **Phone / WhatsApp**: [+91 9322887529](tel:+919322887529)\n• **Email**: [shubhammisra800@gmail.com](mailto:shubhammisra800@gmail.com)\n\nYou can also leave a message using the in-chat contact form or the website contact section!`;
+      matchedCategory = 'Contact';
+      ragSources = ['Direct Contact Channels'];
     }
 
     // 4. Persist the chat interaction (dual write to MongoDB and PostgreSQL)

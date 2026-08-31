@@ -1,14 +1,14 @@
 /**
  * RAG Embedding Service for Shubham's Portfolio
  * Supports:
- * 1. Google Gemini Embedding 2 when GEMINI_API_KEY is configured
+ * 1. Google text-embedding-004 when GEMINI_API_KEY is configured
  * 2. High-accuracy deterministic local semantic projection (384-dim) as a zero-key fallback
  */
 
 export interface EmbeddingResult {
   embedding: number[];
   dimensions: number;
-  model: 'gemini-embedding-2' | 'local-semantic-projection';
+  model: 'text-embedding-004' | 'local-semantic-projection';
 }
 
 /**
@@ -93,41 +93,42 @@ function generateLocalSemanticVector(text: string, dimensions = 384): number[] {
 
 /**
  * Generates an embedding for a piece of text.
- * Uses Google Gemini Embedding 2 if GEMINI_API_KEY is available.
+ * Uses Google text-embedding-004 if GEMINI_API_KEY is available.
  * Otherwise uses the high-precision local semantic projection.
  */
 export async function generateEmbedding(text: string): Promise<EmbeddingResult> {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (apiKey) {
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${apiKey}`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'models/gemini-embedding-2',
-          content: {
-            parts: [{ text: text.slice(0, 8000) }],
-          },
-        }),
-      });
+    const candidateModels = ['gemini-embedding-2', 'text-embedding-004', 'gemini-embedding-001'];
+    for (const model of candidateModels) {
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${apiKey}`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: `models/${model}`,
+            content: {
+              parts: [{ text: text.slice(0, 8000) }],
+            },
+          }),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const values = data?.embedding?.values;
-        if (Array.isArray(values) && values.length > 0) {
-          return {
-            embedding: values,
-            dimensions: values.length,
-            model: 'gemini-embedding-2',
-          };
+        if (response.ok) {
+          const data = await response.json();
+          const values = data?.embedding?.values;
+          if (Array.isArray(values) && values.length > 0) {
+            return {
+              embedding: values,
+              dimensions: values.length,
+              model: model as any,
+            };
+          }
         }
-      } else {
-        console.warn('Gemini embedding API notice, using local semantic fallback:', await response.text());
+      } catch (err) {
+        // Try next candidate
       }
-    } catch (err) {
-      console.warn('Gemini embedding network exception, using local semantic fallback:', err);
     }
   }
 

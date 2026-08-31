@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
         lastUpdated: localStats.lastIndexed,
         categories: localStats.categories.length > 0 ? localStats.categories : pgCategories,
         hasGeminiKey: hasGemini,
-        embeddingModel: hasGemini ? 'Google Gemini Embedding 2' : 'Local High-Precision Semantic Projection (384-dim)',
-        generationModel: hasGemini ? 'Google Gemini 2.5 Flash-Lite' : 'Generation temporarily unavailable',
+        embeddingModel: hasGemini ? 'Google text-embedding-004' : 'Local High-Precision Semantic Projection (384-dim)',
+        generationModel: hasGemini ? 'Google Gemini Flash' : 'Generation temporarily unavailable',
       },
     });
   } catch (error: any) {
