@@ -99,6 +99,24 @@ async function generateWithGemini(
   return null;
 }
 
+export function cleanRawRAGText(raw: string): string {
+  if (!raw) return '';
+  let text = raw;
+  if (text.includes('Verified Response:')) {
+    text = text.split('Verified Response:')[1] || text;
+    if (text.includes('Intent:')) {
+      text = text.split('Intent:')[0] || text;
+    }
+  }
+  if (text.startsWith('Question:')) {
+    const qSplit = text.split('Verified Answer:');
+    if (qSplit.length > 1) {
+      text = qSplit.slice(1).join('Verified Answer:');
+    }
+  }
+  return text.replace(/Intent:\s*\w+/g, '').replace(/Full Version:\s*/g, '').trim();
+}
+
 /** Generates a visitor-facing answer from ranked admin-managed knowledge entries. */
 export async function generateKnowledgeEntryResponse({ query, entries }: KnowledgeGenerationOptions): Promise<GenerationResult> {
   const sources = entries.map((entry) => entry.question);
@@ -153,7 +171,7 @@ Generate Shubham's answer now.`;
   // Fallback to older deterministic RAG model when Gemini token/quota ends
   if (entries.length > 0) {
     return {
-      answer: entries[0].answer,
+      answer: cleanRawRAGText(entries[0].answer),
       sources,
       provider: 'generation-unavailable',
     };
@@ -219,7 +237,7 @@ Answer strictly based on the CONTEXT above:`;
   // Fallback to older deterministic RAG model when Gemini token/quota ends
   if (validChunks.length > 0) {
     return {
-      answer: validChunks[0].chunk.content,
+      answer: cleanRawRAGText(validChunks[0].chunk.content),
       sources,
       provider: 'generation-unavailable',
     };

@@ -24,10 +24,42 @@ export interface KnowledgeMatch {
 }
 
 const STOP_WORDS = new Set([
-  'a', 'and', 'are', 'at', 'can', 'do', 'for', 'hello', 'hey', 'hi', 'hii',
-  'how', 'i', 'in', 'is', 'it', 'me', 'my', 'of', 'on', 'or', 'that', 'the',
-  'this', 'to', 'what', 'when', 'where', 'who', 'why', 'you', 'your',
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'can', 'could', 'did', 'do',
+  'does', 'for', 'from', 'had', 'has', 'have', 'having', 'he', 'hello', 'hey',
+  'hi', 'hii', 'hiii', 'him', 'his', 'how', 'i', 'in', 'is', 'it', 'its', 'like',
+  'many', 'me', 'much', 'my', 'of', 'on', 'or', 'our', 'so', 'some', 'tell',
+  'that', 'the', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'to',
+  'us', 'was', 'we', 'were', 'what', 'when', 'where', 'which', 'who', 'whom',
+  'why', 'will', 'with', 'would', 'you', 'your',
 ]);
+
+const INTENT_BOOST: Record<string, number> = {
+  skills: 5.0,
+  skill: 5.0,
+  technologies: 5.0,
+  tech: 4.0,
+  stack: 4.5,
+  frontend: 4.0,
+  backend: 4.0,
+  database: 4.0,
+  cloud: 4.0,
+  projects: 5.0,
+  project: 5.0,
+  experience: 5.0,
+  career: 4.0,
+  education: 5.0,
+  degree: 5.0,
+  university: 4.0,
+  college: 4.0,
+  contact: 5.0,
+  hire: 5.0,
+  email: 4.0,
+  phone: 4.0,
+  whatsapp: 4.0,
+  resume: 5.0,
+  cv: 5.0,
+  location: 4.0,
+};
 
 function tokens(value: string): string[] {
   return value.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)
@@ -94,33 +126,32 @@ export function rankKnowledgeEntries(query: string, entries: KnowledgeEntry[]): 
       const phraseRegex = new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'i');
       if (phraseRegex.test(normalizedQuery)) {
         const specificity = phraseTokens.reduce((sum, term) => sum + inverseDocumentFrequency(term, documentTerms), 0) / phraseTokens.length;
-        // A one-word keyword is a weak signal. Multi-word phrases encode intent
-        // and therefore receive a much larger boost (for example, “why hire”).
-        score += (phraseTokens.length === 1 ? 0.75 : 5 * phraseTokens.length) * specificity;
+        score += (phraseTokens.length === 1 ? 1.5 : 5 * phraseTokens.length) * specificity;
         exactKeywords.push(phrase);
       }
     }
 
     for (const queryToken of queryTokens) {
+      const boost = INTENT_BOOST[queryToken] || 1.0;
       if (questionTerms.has(queryToken)) {
-        score += 2 * inverseDocumentFrequency(queryToken, documentTerms);
+        score += 2 * boost * inverseDocumentFrequency(queryToken, documentTerms);
         exactTerms.push(queryToken);
         continue;
       }
       if (keywordTerms.has(queryToken)) {
-        score += inverseDocumentFrequency(queryToken, documentTerms);
+        score += boost * inverseDocumentFrequency(queryToken, documentTerms);
         exactTerms.push(queryToken);
         continue;
       }
       const fuzzyQuestionTerm = [...questionTerms].find((term) => isFuzzyMatch(queryToken, term));
       if (fuzzyQuestionTerm) {
-        score += 1.8 * inverseDocumentFrequency(fuzzyQuestionTerm, documentTerms);
+        score += 1.8 * boost * inverseDocumentFrequency(fuzzyQuestionTerm, documentTerms);
         fuzzyTerms.push({ query: queryToken, matched: fuzzyQuestionTerm });
         continue;
       }
       const fuzzyKeywordTerm = [...keywordTerms].find((term) => isFuzzyMatch(queryToken, term));
       if (fuzzyKeywordTerm) {
-        score += 0.9 * inverseDocumentFrequency(fuzzyKeywordTerm, documentTerms);
+        score += 0.9 * boost * inverseDocumentFrequency(fuzzyKeywordTerm, documentTerms);
         fuzzyTerms.push({ query: queryToken, matched: fuzzyKeywordTerm });
       }
     }
