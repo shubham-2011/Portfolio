@@ -35,7 +35,7 @@ function formatMessageMarkdown(line: string) {
   // Heading check: ### Heading
   if (line.startsWith('### ')) {
     return (
-      <p className="font-bold text-cyan-300 text-xs tracking-wide border-b border-zinc-800/80 pb-1 mb-1">
+      <p className="font-semibold text-slate-100 text-[11px] uppercase tracking-[0.14em] border-b border-slate-700/80 pb-1 mb-1">
         {line.replace('### ', '')}
       </p>
     );
@@ -58,7 +58,7 @@ function formatMessageMarkdown(line: string) {
   const formattedContent = parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={i} className="font-bold text-white">
+        <strong key={i} className="font-semibold text-slate-50">
           {part.slice(2, -2)}
         </strong>
       );
@@ -68,14 +68,14 @@ function formatMessageMarkdown(line: string) {
 
   if (isBullet) {
     return (
-      <div className="flex items-start gap-1.5 pl-0.5 text-zinc-200">
-        <span className="text-cyan-400 font-bold text-xs select-none">•</span>
+      <div className="flex items-start gap-2 pl-0.5 text-slate-200">
+        <span className="text-[#5B8DEF] font-semibold text-xs select-none mt-0.5">•</span>
         <div className="flex-1 leading-relaxed">{formattedContent}</div>
       </div>
     );
   }
 
-  return <p className="text-zinc-200 leading-relaxed">{formattedContent}</p>;
+  return <p className="text-slate-200 leading-relaxed">{formattedContent}</p>;
 }
 
 function StreamedMessage({
@@ -164,34 +164,85 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const resumeUrl = content?.hero?.resumeUrl || '/Skills/Shubham_Kumar_Resume.pdf';
 
-  // Initial welcome message
-  const initialMessages: ChatMessage[] = [
-    {
-      id: 'msg-welcome',
-      sender: 'bot',
-      text: `Hello! 👋 I'm **Shubham's AI Portfolio Assistant**.\n\nI can answer questions about Shubham's full-stack skills, showcase his best projects, provide his official resume, or help you get in touch. How can I help you today?`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      quickActions: [
-        { label: '⚡ Top Tech Stack', action: 'skills' },
-        { label: '🚀 Featured Projects', action: 'projects' },
-        { label: '📄 Download Resume', action: 'resume' },
-        { label: '🎓 Education & Degree', action: 'education' },
-        { label: '📬 Hire / Contact', action: 'contact' },
-      ],
-    },
-  ];
+  // Deliberately start empty so the panel opens with direct, portfolio-relevant questions.
+  const initialMessages: ChatMessage[] = [];
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+
+  const openers = [
+    'What has Shubham built with Spring Boot?',
+    'Is he available for full-time roles?',
+    'Walk me through the microservices project',
+  ];
+
+  const panelTheme: React.CSSProperties = {
+    ['--pa-bg' as any]: '#050505',
+    ['--pa-surface' as any]: '#121212',
+    ['--pa-surface-2' as any]: '#1A1A1A',
+    ['--pa-line' as any]: '#262626',
+    ['--pa-line-hi' as any]: '#3D3D3D',
+    ['--pa-muted' as any]: '#7A7A7A',
+    ['--pa-text' as any]: '#F2F2F2',
+    ['--pa-accent' as any]: '#FFFFFF',
+    ['--pa-live' as any]: '#4AD07A',
+    ['--pa-danger' as any]: '#F0857A',
+  };
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      inputRef.current?.focus();
+    } else {
+      triggerRef.current?.focus();
     }
   }, [messages, isTyping, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        return;
+      }
+
+      const isModifierPressed = event.metaKey || event.ctrlKey;
+      if (isModifierPressed && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsOpen((prev) => !prev);
+        return;
+      }
+
+      if (event.key === 'Tab' && panelRef.current) {
+        const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
+        );
+
+        if (!focusable.length) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   // Answer matching logic grounded in real portfolio content
   const generateResponse = (rawInput: string): ChatMessage => {
@@ -656,48 +707,28 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
     <>
       {/* Floating Launcher Button */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-        <AnimatePresence>
-          {!isOpen && !hasInteracted && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/90 border border-cyan-500/30 text-white text-xs font-medium shadow-xl backdrop-blur-md cursor-pointer hover:border-cyan-400 transition-colors"
-              onClick={() => {
-                setIsOpen(true);
-                setHasInteracted(true);
-              }}
-            >
-              <Bot className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Ask Portfolio Assistant</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <motion.button
+          ref={triggerRef}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           onClick={() => {
             setIsOpen((prev) => !prev);
             setHasInteracted(true);
           }}
-          className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
-            isOpen
-              ? 'bg-zinc-900 border border-zinc-700 text-white rotate-90'
-              : 'bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-cyan-500/25 ring-4 ring-cyan-500/20'
-          }`}
+          className="group relative flex items-center justify-center rounded-full border border-[#262626] bg-[#121212] text-[#F2F2F2] shadow-[0_8px_28px_rgba(0,0,0,0.42)] transition-all duration-180 ease-out w-12 h-12 sm:w-auto sm:h-11 sm:px-4 sm:py-2.5 focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
           aria-label={isOpen ? 'Close Chatbot Assistant' : 'Open Chatbot Assistant'}
+          aria-expanded={isOpen}
+          aria-controls="portfolio-assistant-panel"
         >
-          {isOpen ? (
-            <X className="w-6 h-6 transition-transform" />
-          ) : (
+          {!isOpen ? (
             <>
-              <Bot className="w-6 h-6 text-white" />
-              {/* Pulsing online badge */}
-              <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-emerald-400 border-2 border-black rounded-full">
-                <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75"></span>
-              </span>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="sm:mr-2">
+                <path d="M4 5.5h16v11h-8.5L7 21v-4.5H4z" />
+              </svg>
+              <span className="hidden sm:inline text-[12px] font-medium text-[#F2F2F2]">Ask about my work</span>
             </>
+          ) : (
+            <X className="w-5 h-5 text-[#F2F2F2]" />
           )}
         </motion.button>
       </div>
@@ -706,37 +737,37 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            ref={panelRef}
+            id="portfolio-assistant-panel"
+            initial={{ opacity: 0, y: 10, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[400px] h-[560px] max-h-[82vh] rounded-2xl bg-zinc-950/95 border border-zinc-800/90 shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden text-white"
+            exit={{ opacity: 0, y: 10, scale: 0.985 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            style={panelTheme}
+            className="fixed bottom-24 right-2 left-2 sm:right-6 sm:left-auto z-50 w-auto sm:w-[392px] h-[min(620px,calc(100dvh-28px))] sm:h-[min(620px,calc(100dvh-48px))] max-h-[82vh] rounded-[14px] sm:rounded-[14px] bg-[#050505] border border-[#262626] shadow-[0_24px_64px_rgba(0,0,0,0.55)] backdrop-blur-2xl flex flex-col overflow-hidden text-[#F2F2F2]"
+            role="dialog"
+            aria-label="Portfolio assistant"
           >
             {/* Chat Header */}
-            <div className="p-3.5 sm:p-4 bg-gradient-to-r from-zinc-900 via-zinc-900/95 to-zinc-950 border-b border-zinc-800/80 flex items-center justify-between">
+            <div className="px-4 py-3 bg-[#050505] border-b border-[#262626] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="relative w-10 h-10 rounded-full overflow-hidden border border-cyan-500/40 bg-zinc-800 shrink-0 shadow-inner">
+                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-[#262626] bg-[#121212] shrink-0 shadow-inner">
                   <Image
                     src="/Skills/shubham3-rm.png"
                     alt="Shubham Kumar"
                     fill
-                    sizes="40px"
+                    sizes="32px"
                     className="object-cover object-top"
                     unoptimized
                   />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border border-black rounded-full"></span>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                    <span>Shubham&apos;s Portfolio Assistant</span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono">
-                      Verified
-                    </span>
+                  <h3 className="text-[14px] font-semibold text-[#F2F2F2] leading-none">
+                    Portfolio assistant
                   </h3>
-                  <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>Online • Grounded on Verified Resume &amp; Projects</span>
+                  <p className="mt-1 text-[12px] leading-[1.45] text-[#7A7A7A]">
+                    Trained on projects and stack
                   </p>
                 </div>
               </div>
@@ -745,14 +776,16 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
                 <button
                   onClick={handleResetChat}
                   title="Reset conversation"
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors"
+                  className="p-1.5 rounded-md text-[#7A7A7A] hover:text-[#F2F2F2] hover:bg-[#121212] border border-transparent hover:border-[#3D3D3D] transition-colors"
+                  aria-label="Reset conversation"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
                   title="Minimize chat"
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors"
+                  className="p-1.5 rounded-md text-[#7A7A7A] hover:text-[#F2F2F2] hover:bg-[#121212] border border-transparent hover:border-[#3D3D3D] transition-colors"
+                  aria-label="Close portfolio assistant"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -760,98 +793,119 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
             </div>
 
             {/* Chat Messages Body */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs selection:bg-cyan-500 selection:text-black">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
-                >
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs selection:bg-[#F2F2F2] selection:text-[#050505]">
+              {messages.length === 0 ? (
+                <div className="space-y-3 pt-1">
+                  <p className="text-[14px] leading-[1.6] text-[#F2F2F2] max-w-[32ch]">
+                    Ask anything about the projects, the stack behind them, or availability.
+                  </p>
+
+                  <div className="border-t border-[#262626] pt-3 space-y-2">
+                    {openers.map((opener) => (
+                      <button
+                        key={opener}
+                        type="button"
+                        onClick={() => handleSendMessage(opener)}
+                        className="block w-full text-left text-[14px] leading-[1.6] text-[#F2F2F2] border-b border-[#262626] pb-2 hover:text-[#FFFFFF] hover:border-[#3D3D3D] transition-colors"
+                      >
+                        {opener}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                messages.map((msg) => (
                   <div
-                    className={`max-w-[88%] p-3 rounded-2xl whitespace-pre-wrap leading-relaxed shadow-sm ${
-                      msg.sender === 'user'
-                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-br-none'
-                        : 'bg-zinc-900 border border-zinc-800/90 text-zinc-200 rounded-bl-none'
-                    }`}
+                    key={msg.id}
+                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
                   >
-                    {/* Render message text with smooth line-by-line reveal for bot and instant for user */}
-                    {msg.sender === 'user' ? (
-                      <div>
-                        {msg.text.split('\n').map((line, idx) => (
-                          <p key={idx} className={idx > 0 ? 'mt-1.5' : ''}>
-                            {line}
-                          </p>
-                        ))}
-                      </div>
-                    ) : (
-                      <StreamedMessage
-                        text={msg.text}
-                        isStreaming={msg.isStreaming}
-                        onLineRendered={() => {
-                          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                      />
-                    )}
+                    <div
+                      className={`max-w-[88%] whitespace-pre-wrap leading-relaxed ${
+                        msg.sender === 'user'
+                          ? 'p-3 rounded-[14px_14px_4px_14px] bg-[#121212] border border-[#262626] text-[#F2F2F2] shadow-[0_8px_19px_rgba(0,0,0,0.18)]'
+                          : 'pl-3.5 border-l border-[rgba(255,255,255,0.28)] text-[#F2F2F2]'
+                      }`}
+                    >
+                      {/* Render message text with smooth line-by-line reveal for bot and instant for user */}
+                      {msg.sender === 'user' ? (
+                        <div>
+                          {msg.text.split('\n').map((line, idx) => (
+                            <p key={idx} className={idx > 0 ? 'mt-1.5' : ''}>
+                              {line}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <StreamedMessage
+                          text={msg.text}
+                          isStreaming={msg.isStreaming}
+                          onLineRendered={() => {
+                            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                        />
+                      )}
 
-                    {/* Download Resume Button right inside message */}
-                    {msg.downloadLink && (
-                      <div className="mt-3 pt-2.5 border-t border-zinc-800">
-                        <a
-                          href={msg.downloadLink.url}
-                          download={msg.downloadLink.filename}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-colors shadow"
-                        >
-                          <FileText className="w-4 h-4 text-red-500" />
-                          <span>Download Official PDF Resume</span>
-                        </a>
-                      </div>
-                    )}
-
-                    {/* External links in message */}
-                    {msg.links && (
-                      <div className="mt-2.5 pt-2 border-t border-zinc-800 flex flex-wrap gap-2">
-                        {msg.links.map((link, lIdx) => (
+                      {/* Download Resume Button right inside message */}
+                      {msg.downloadLink && (
+                        <div className="mt-3 pt-2.5 border-t border-[#262626]">
                           <a
-                            key={lIdx}
-                            href={link.url}
-                            target={link.url.startsWith('http') ? '_blank' : '_self'}
+                            href={msg.downloadLink.url}
+                            download={msg.downloadLink.filename}
+                            target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] text-cyan-300 hover:text-cyan-200 underline"
+                            className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-[#F2F2F2] text-[#050505] font-bold text-xs hover:bg-[#FFFFFF] transition-colors shadow"
                           >
-                            <span>{link.label}</span>
-                            <ExternalLink className="w-3 h-3" />
+                            <FileText className="w-4 h-4 text-[#050505]" />
+                            <span>Download Official PDF Resume</span>
                           </a>
+                        </div>
+                      )}
+
+                      {/* External links in message */}
+                      {msg.links && (
+                        <div className="mt-2.5 pt-2 border-t border-[#262626] flex flex-wrap gap-2">
+                          {msg.links.map((link, lIdx) => (
+                            <a
+                              key={lIdx}
+                              href={link.url}
+                              target={link.url.startsWith('http') ? '_blank' : '_self'}
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] text-[#F2F2F2] underline decoration-[#3D3D3D] underline-offset-2"
+                            >
+                              <span>{link.label}</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <span className="text-[9px] text-[#7A7A7A] mt-1 px-1">{msg.timestamp}</span>
+
+                    {/* Quick Action Chips */}
+                    {msg.quickActions && msg.quickActions.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2 max-w-[95%]">
+                        {msg.quickActions.map((qa, qIdx) => (
+                          <button
+                            key={qIdx}
+                            onClick={() => handleQuickAction(qa.action)}
+                            className="px-2.5 py-1 rounded-full bg-[#121212] hover:bg-[#1A1A1A] border border-[#262626] text-[#F2F2F2] hover:text-[#FFFFFF] text-[10px] font-medium transition-colors active:scale-95 font-mono tracking-[0.08em] uppercase"
+                          >
+                            {qa.label}
+                          </button>
                         ))}
                       </div>
                     )}
                   </div>
-
-                  <span className="text-[9px] text-zinc-500 mt-1 px-1">{msg.timestamp}</span>
-
-                  {/* Quick Action Chips */}
-                  {msg.quickActions && msg.quickActions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2 max-w-[95%]">
-                      {msg.quickActions.map((qa, qIdx) => (
-                        <button
-                          key={qIdx}
-                          onClick={() => handleQuickAction(qa.action)}
-                          className="px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-300 hover:text-white text-[11px] font-medium transition-colors active:scale-95"
-                        >
-                          {qa.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))
+              )}
 
               {/* Minimalist sleek typing indicator */}
               {isTyping && (
-                <div className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400 w-14 shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce"></span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]"></span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]"></span>
+                <div aria-live="polite" className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-[#121212] border border-[#262626] text-[#7A7A7A] w-14 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#F2F2F2] opacity-60 animate-bounce"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#F2F2F2] opacity-60 animate-bounce [animation-delay:0.2s]"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#F2F2F2] opacity-60 animate-bounce [animation-delay:0.4s]"></span>
                 </div>
               )}
 
@@ -924,19 +978,21 @@ export default function PortfolioChatbot({ content }: PortfolioChatbotProps) {
                 e.preventDefault();
                 handleSendMessage();
               }}
-              className="p-3 bg-zinc-900/90 border-t border-zinc-800 flex items-center gap-2"
+              className="p-3 bg-[#050505] border-t border-[#262626] flex items-center gap-2"
             >
               <input
+                ref={inputRef}
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Ask about skills, projects, resume..."
-                className="flex-1 px-3.5 py-2 rounded-xl bg-black border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                placeholder="Ask a question"
+                aria-label="Ask a question"
+                className="flex-1 px-3.5 py-2.5 rounded-[12px] bg-[#121212] border border-[#262626] text-[13px] text-[#F2F2F2] placeholder-[#7A7A7A] focus:outline-none focus:border-[#3D3D3D] focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2 transition-colors"
               />
               <button
                 type="submit"
                 disabled={!inputMessage.trim()}
-                className="w-9 h-9 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center transition-all disabled:opacity-30 disabled:hover:bg-cyan-500"
+                className="w-10 h-10 rounded-[12px] bg-[#F2F2F2] text-[#050505] flex items-center justify-center transition-all disabled:bg-[#121212] disabled:text-[#4A4A4A] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
                 aria-label="Send message"
               >
                 <Send className="w-4 h-4" />

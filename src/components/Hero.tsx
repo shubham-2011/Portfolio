@@ -36,8 +36,8 @@ export default function Hero({ content }: HeroProps) {
   const description =
     content?.description ||
     'Computer Engineer specializing in full-stack architecture. I design and build high-performance, scalable applications using Java, Spring Boot, PostgreSQL, Angular, React & Cloud.';
-  const yearsExperience = content?.yearsExperience || '2+';
-  const technologiesCount = content?.technologiesCount || '10+';
+  const yearsExperience = content?.yearsExperience || 'Fresher';
+  const technologiesCount = content?.technologiesCount || '6+';
   const clientSatisfaction = content?.clientSatisfaction || '100%';
   const profileImage = content?.profileImage || '/Skills/shubham3-rm.png';
   const resumeUrl = content?.resumeUrl !== undefined ? content.resumeUrl : '/Skills/Shubham_Kumar_Resume.pdf';
@@ -171,15 +171,15 @@ export default function Hero({ content }: HeroProps) {
         <div className="w-full p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800/90 shadow-xl backdrop-blur-md grid grid-cols-3 divide-x divide-zinc-800 text-center">
           <div className="px-1">
             <p className="text-lg font-black text-white tracking-tight">{yearsExperience}</p>
-            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Experience</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Career Start</p>
           </div>
           <div className="px-1">
             <p className="text-lg font-black text-white tracking-tight">{technologiesCount}</p>
-            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Tech Stack</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Core Stack</p>
           </div>
           <div className="px-1">
             <p className="text-lg font-black text-white tracking-tight">{clientSatisfaction}</p>
-            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Quality</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-wider">Focus</p>
           </div>
         </div>
 
